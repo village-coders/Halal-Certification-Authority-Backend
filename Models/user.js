@@ -51,9 +51,38 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["customer", "admin"],
-    default: "customer",
+    enum: ["company", "admin"],
+    default: "company",
     required: true
+  },
+  registrationNo: {
+    type: String,
+    required: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
+  lga: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true
+  },
+  state: {
+    type: String,
+    required: true
+  },
+  position: {
+    type: String,
+    required: true,
+    default: "company"
+  },
+  website: {
+    type: String,
+    // required: true
   },
   
   // Timestamps
