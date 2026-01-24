@@ -149,7 +149,7 @@ const updateUser = async (req, res, next) => {
 
         const updatedFields = {
             ...req.body,              // Spread all fields from form
-            // authImage: req.file.path  // Add uploaded image path
+            authImage: req.file.path  // Add uploaded image path
         };
 
         const updatedUser = await userModel.findByIdAndUpdate(id, updatedFields, { new: true });

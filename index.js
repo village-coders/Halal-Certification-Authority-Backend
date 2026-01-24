@@ -13,6 +13,8 @@ const productRouter = require('./Routes/productRouter');
 
 const errorHandler = require("./Middlewares/errorHandler");
 const isLoggedIn = require('./Middlewares/isLoggedIn');
+const applicationRouter = require('./Routes/applicationRouter');
+const certificateRouter = require('./Routes/certificateRouter');
 
 const clientDomain = process.env.client_domain
 
@@ -33,6 +35,8 @@ app.get("/", (req, res)=>{res.send("Welcome to Halal Certification Authority Api
 app.use("/api/auth", authRouter)
 app.use("/api/users", userRouter)
 app.use("/api/products", productRouter)
+app.use("/api/applications", applicationRouter)
+app.use("/api/certificates", certificateRouter)
 
 app.use(express.json())
 
