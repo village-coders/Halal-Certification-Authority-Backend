@@ -1,10 +1,14 @@
 const productModel = require("../Models/product");
+const userModel = require("../Models/user");
 
 const createProduct = async (req, res, next) =>{
     const {name} = req.body;
     const userId = req.user.id;
     try {
-        const product = await productModel.create({...req.body, companyId: userId})
+        const company = await userModel.findById(userId)
+
+        const product = await productModel.create({...req.body, companyId: company.registrationNo, createdBy: userId})
+
         if(!product){
             return res.status(404).json({
                 status: "error",
@@ -25,8 +29,44 @@ const createProduct = async (req, res, next) =>{
 
 const getMyProducts = async (req, res, next) =>{
     const userId = req.user.id;
+    const company = await userModel.findById(userId)
     try {
-        const products = await productModel.find({ companyId: userId })
+        const products = await productModel.find({ companyId: company.registrationNo })
+        if(!products){
+            return res.status(404).json({
+                status: "error",
+                message: "You have no product available",
+                products: []
+            })
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: `Products loaded successfully`,
+            products
+        })
+    } catch (error) {
+        console.log(error);
+        next(error);      
+    }
+}
+
+const getAllProducts = async (req, res, next) =>{
+    // const userId = req.user.id;
+    // const company = await userModel.findById(userId)
+    try {
+        const query = req.query;
+        let build = {}
+
+        if(query.registrationNo){
+            build.companyId = query.registrationNo
+        }
+        
+        if(query.status){
+            build.status = query.status
+        }
+
+        const products = await productModel.find(build)
         if(!products){
             return res.status(404).json({
                 status: "error",
@@ -70,4 +110,5 @@ module.exports = {
     createProduct,
     getMyProducts,
     deleteMyProduct,
+    getAllProducts
 }

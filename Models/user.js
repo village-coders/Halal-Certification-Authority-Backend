@@ -59,21 +59,25 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  isUnderCompany: {
+    type: String,
+    default: false
+  },
   address: {
     type: String,
-    required: true
+    // required: true
   },
   lga: {
     type: String,
-    required: true
+    // required: true
   },
   city: {
     type: String,
-    required: true
+    // required: true
   },
   state: {
     type: String,
-    required: true
+    // required: true
   },
   position: {
     type: String,
@@ -81,6 +85,10 @@ const userSchema = new mongoose.Schema({
     default: "company"
   },
   website: {
+    type: String,
+    // required: true
+  },
+  department: {
     type: String,
     // required: true
   },

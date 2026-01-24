@@ -1,13 +1,14 @@
 const express = require("express")
 const userRouter = express.Router()
 
-const {getAllUsers, getUserById, getUserByQuery, updateUser} = require("../Controllers/userController")
+const {getAllUsers, getUserById, updateUser, createUser} = require("../Controllers/userController")
 const uploadAuthImage = require("../Config/authMulter")
+const isLoggedIn = require("../Middlewares/isLoggedIn")
 
 userRouter.get("/", getAllUsers)
-userRouter.get("/", getUserByQuery)
-userRouter.put("/:id", uploadAuthImage.single("authImage"), updateUser)
+userRouter.put("/:id",  updateUser)
 userRouter.get("/:id", getUserById)
+userRouter.post("/", isLoggedIn, createUser)
 
 
 module.exports = userRouter
