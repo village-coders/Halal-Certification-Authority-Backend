@@ -21,21 +21,21 @@ const signup = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const user = await userModel.create({...req.body, password: hashedPassword, verificationToken: token, verificationExp, /*authImage: file*/})
+        const user = await userModel.create({...req.body, password: hashedPassword, verificationToken: token, verificationExp, /*authImage: file,*/ isVerified: true})
         
         if(!user){
-           return res.status(404).json({
+            return res.status(404).json({
                 status: "error",
                 message: "could not sign up"
             })
         }
         
         // const companyFirstName = companyName.split(" ")[0]
-        sendVerificationEmail(email, companyName, token)
+        // sendVerificationEmail(email, companyName, token)
 
         res.status(202).json({
             status: "success",
-            message: "Sign up successful. Check your email to verify your account. Check your spam if not appeared in inbox.",
+            message: "Sign up successful",
             user
         })
 
@@ -115,30 +115,31 @@ const login = async (req, res, next) => {
             });
         }
 
-        if (!user.isVerified) {
-            const now = new Date();
+        // if (!user.isVerified) {
+        //     const now = new Date();
 
-            // ✅ If verification code is missing or expired, regenerate
-            if (!user.verificationExp || user.verificationExp < now) {
-                const userFirstName = user.companyName.split(" ")[0]
-                const newCode = generateRandomString(8)
+        //     // ✅ If verification code is missing or expired, regenerate
+        //     if (!user.verificationExp || user.verificationExp < now) {
+        //         const userFirstName = user.companyName.split(" ")[0]
+        //         const newCode = generateRandomString(8)
 
-                user.verificationToken = newCode;
-                user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
-                await user.save();
+        //         user.verificationToken = newCode;
+        //         user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
+        //         await user.save();
 
-                // ✅ Send the new code via email (mock or real)
-                await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
+        //         // ✅ Send the new code via email (mock or real)
+        //         await sendVerificationEmail(user.email, userFirstName, newCode);
 
-                return res.status(403).json({
-                    message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
-                });
-            }
 
-            return res.status(403).json({
-                message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
-            });
-        }
+        //         return res.status(403).json({
+        //             message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
+        //         });
+        //     }
+
+        //     return res.status(403).json({
+        //         message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
+        //     });
+        // }
 
 
         const accessToken = jwt.sign(
@@ -196,30 +197,30 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
-        if (!user.isVerified) {
-            const now = new Date();
+        // if (!user.isVerified) {
+        //     const now = new Date();
 
-            // ✅ If verification code is missing or expired, regenerate
-            if (!user.verificationExp || user.verificationExp < now) {
-                const userFirstName = user.fullName.split(" ")[0]
-                const newCode = generateRandomString(8)
+        //     // ✅ If verification code is missing or expired, regenerate
+        //     if (!user.verificationExp || user.verificationExp < now) {
+        //         const userFirstName = user.fullName.split(" ")[0]
+        //         const newCode = generateRandomString(8)
 
-                user.verificationToken = newCode;
-                user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
-                await user.save();
+        //         user.verificationToken = newCode;
+        //         user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
+        //         await user.save();
 
-                // ✅ Send the new code via email (mock or real)
-                await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
+        //         // ✅ Send the new code via email (mock or real)
+        //         await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
 
-                return res.status(403).json({
-                    message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
-                });
-            }
+        //         return res.status(403).json({
+        //             message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
+        //         });
+        //     }
 
-            return res.status(403).json({
-                message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
-            });
-        }
+        //     return res.status(403).json({
+        //         message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
+        //     });
+        // }
 
 
         const accessToken = jwt.sign(
