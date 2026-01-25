@@ -21,7 +21,7 @@ const signup = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const randomNumber = Math.floor(Math.random() * 1000000);
+        const randomNumber  = Math.floor(Math.random() * 1000000);
         const regNo = `HCA-${randomNumber}`;
 
         const user = await userModel.create({...req.body, password: hashedPassword, verificationToken: token, verificationExp, /*authImage: file,*/ registrationNo: regNo})

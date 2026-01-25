@@ -1,11 +1,11 @@
 const dotenv = require("dotenv");
 const transporter = require('./transporter');
 
-const sendVerificationEmail = (email, userFirstName, token) => {
+const sendVerificationEmail = async(email, userFirstName, token) => {
   const options = {
     to: email,
     subject: "✅ Verify Your Email for Halal Food Certification",
-    from: "Halal Food Certification",
+    from: `"Halal Food Certification" <${process.env.Nodemailer_User}>`,
     replyTo: "support@halalfoodcertification.org",
     html: `
       <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
@@ -39,7 +39,7 @@ const sendVerificationEmail = (email, userFirstName, token) => {
     `
   };
 
-  transporter.sendMail(options, (err, info) => {
+  await transporter.sendMail(options, (err, info) => {
     if (err) {
       console.log(err.message);
     } else {
