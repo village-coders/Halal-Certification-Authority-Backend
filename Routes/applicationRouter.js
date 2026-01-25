@@ -8,6 +8,7 @@ const {
   deleteApplication,
   getRenewalApplications
 } = require('../Controllers/applicationController');
+const isLoggedIn = require('../Middlewares/isLoggedIn');
 
 // GET all applications
 applicationRouter.get('/', getApplications);
@@ -16,7 +17,7 @@ applicationRouter.get('/', getApplications);
 applicationRouter.get('/:id', getApplication);
 
 // POST create application
-applicationRouter.post('/', createApplication);
+applicationRouter.post('/', isLoggedIn, createApplication);
 
 // PUT update application
 applicationRouter.put('/:id', updateApplication);

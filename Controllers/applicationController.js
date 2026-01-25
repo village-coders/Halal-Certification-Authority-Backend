@@ -1,4 +1,5 @@
 const applicationModel = require('../Models/application');
+const userModel = require('../Models/user');
 
 // Get all applications
 const getApplications = async (req, res) => {
@@ -25,16 +26,23 @@ const getApplication = async (req, res) => {
 
 // Create application
 const createApplication = async (req, res) => {
+    const id = req.user.id
   try {
+    const company = await userModel.findById(id)
+
+    console.log(company);
+    
+
     // Generate application number
     const timestamp = Date.now().toString().slice(-8);
-    const prefix = req.user.companyName.split(' ')[0].charAt(2).toUpperCase();
+    const prefix = company.companyName.charAt(2).toUpperCase();
     const applicationNumber = `${prefix}/${timestamp}`;
     
     const application = new applicationModel({
-      ...req.body,
-      applicationNumber,
-      requestedDate: req.body.requestedDate || new Date()
+        ...req.body,
+        applicationNumber,
+        companyId: company.registrationNo,
+        requestedDate: req.body.requestedDate || new Date()
     });
     
     const savedApplication = await application.save();

@@ -10,6 +10,10 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  companyId: {
+    type: String,
+    required: true
+  },
   product: {
     type: String,
     required: true

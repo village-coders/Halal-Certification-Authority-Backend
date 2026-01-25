@@ -95,7 +95,7 @@ const createUser = async (req, res, next)=>{
     const id = req.user.id
     try {
         const company = await userModel.findById(id)
-        console.log(company);
+        // console.log(company);
         
         // if (!req.file || !req.file.path) {
         //     return res.status(400).json({
@@ -109,7 +109,7 @@ const createUser = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const user = await userModel.create({...company, email, fullName, department, password: hashedPassword, isVerified: true, registrationNo: company.registrationNo, isUnderCompany: true})
+        const user = await userModel.create({...company, email, fullName, department, password: hashedPassword, isVerified: true, registrationNo: company.registrationNo, isUnderCompany: true, companyName: company.companyName, verificationToken: token, verificationExp})
         
         if(!user){
             return res.status(404).json({
@@ -119,7 +119,7 @@ const createUser = async (req, res, next)=>{
         }
         
         // const companyFirstName = companyName.split(" ")[0]
-        // sendVerificationEmail(email, companyName, token)
+        sendVerificationEmail(email, companyName, token)
 
         res.status(202).json({
             status: "success",

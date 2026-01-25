@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Get all certificates
-const getCertificates = async (req, res) => {
+const getCertificates = async (req, res, next) => {
   try {
     const { companyId, status } = req.query;
     
@@ -19,12 +19,13 @@ const getCertificates = async (req, res) => {
     
     res.json(certificates);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error);
+    next(error)
   }
 };
 
 // Get single certificate
-const getCertificate = async (req, res) => {
+const getCertificate = async (req, res, next) => {
   try {
     const certificate = await applicationModel.findById(req.params.id)
       .populate('applicationId', 'applicationNumber category description');
@@ -35,12 +36,13 @@ const getCertificate = async (req, res) => {
     
     res.json(certificate);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error)
+    next(error)
   }
 };
 
 // Generate certificate from approved application
-const generateCertificate = async (req, res) => {
+const generateCertificate = async (req, res, next) => {
   try {
     const { applicationId, companyId } = req.body;
     
@@ -97,12 +99,13 @@ const generateCertificate = async (req, res) => {
     
     res.status(201).json(certificate);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.log(error)
+    next(error)
   }
 };
 
 // Download certificate PDF
-const downloadCertificate = async (req, res) => {
+const downloadCertificate = async (req, res, next) => {
   try {
     const certificate = await applicationModel.findById(req.params.id);
     
@@ -118,12 +121,13 @@ const downloadCertificate = async (req, res) => {
     
     res.download(pdfPath, `${certificate.certificateNumber}.pdf`);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error)
+    next(error)
   }
 };
 
 // Renew certificate
-const renewCertificate = async (req, res) => {
+const renewCertificate = async (req, res, next) => {
   try {
     const { certificateId } = req.body;
     
@@ -171,12 +175,13 @@ const renewCertificate = async (req, res) => {
       certificate: newCertificate
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.log(error)
+    next(error)
   }
 };
 
 // Get expiring certificates
-const getExpiringCertificates = async (req, res) => {
+const getExpiringCertificates = async (req, res, next) => {
   try {
     const { companyId, days = 30 } = req.query;
     
@@ -196,7 +201,8 @@ const getExpiringCertificates = async (req, res) => {
     
     res.json(certificates);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error)
+    next(error)
   }
 };
 
