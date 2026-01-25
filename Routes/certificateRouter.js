@@ -8,9 +8,10 @@ const {
   renewCertificate,
   getExpiringCertificates
 } = require('../Controllers/certificateController');
+const isLoggedIn = require('../Middlewares/isLoggedIn');
 
 // GET all certificates
-certificateRouter.get('/', getCertificates);
+certificateRouter.get('/', isLoggedIn, getCertificates);
 
 // GET single certificate
 certificateRouter.get('/:id', getCertificate);

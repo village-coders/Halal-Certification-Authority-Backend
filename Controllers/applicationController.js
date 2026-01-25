@@ -3,8 +3,24 @@ const userModel = require('../Models/user');
 
 // Get all applications
 const getApplications = async (req, res) => {
+    const query = req.query
+    // console.log(query);
+
+    const company = req.user
+    
   try {
-    const applications = await applicationModel.find().sort({ createdAt: -1 });
+    let build = {}
+    if(query.status){
+        build.status = query.status
+    }
+    if(query.category){
+        build.category = query.category
+    }
+    if(req.user.role !== "admin" && company.registrationNo){
+        build.companyId = company.registrationNo
+    }    
+
+    const applications = await applicationModel.find(build).sort({ createdAt: -1 });
     res.json(applications);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -27,15 +43,28 @@ const getApplication = async (req, res) => {
 // Create application
 const createApplication = async (req, res) => {
     const id = req.user.id
+    const {product} = req.body
   try {
     const company = await userModel.findById(id)
 
-    console.log(company);
+    // console.log(company);
+    
+    // check if there is an application for the product
+    const existingApplication = await applicationModel.findOne({
+      companyId: company.registrationNo,
+      product
+    });
+    
+    if (existingApplication) {
+      return res.status(400).json({ message: 'Application already exists for this product' });
+    }
     
 
     // Generate application number
     const timestamp = Date.now().toString().slice(-8);
-    const prefix = company.companyName.charAt(2).toUpperCase();
+    const prefix = company.companyName.slice(0, 2).toUpperCase();
+    console.log(prefix);
+    
     const applicationNumber = `${prefix}/${timestamp}`;
     
     const application = new applicationModel({

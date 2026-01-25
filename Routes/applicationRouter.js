@@ -11,12 +11,12 @@ const {
 const isLoggedIn = require('../Middlewares/isLoggedIn');
 
 // GET all applications
-applicationRouter.get('/', getApplications);
+applicationRouter.get('/', isLoggedIn, getApplications);
 
 // GET single application
 applicationRouter.get('/:id', getApplication);
 
-// POST create application
+// POST create application  
 applicationRouter.post('/', isLoggedIn, createApplication);
 
 // PUT update application

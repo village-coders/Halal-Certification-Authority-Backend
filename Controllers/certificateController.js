@@ -7,10 +7,11 @@ const path = require('path');
 // Get all certificates
 const getCertificates = async (req, res, next) => {
   try {
-    const { companyId, status } = req.query;
+    const { status } = req.query;
+    const companyId = req.user.registrationNo;
     
     const filter = {};
-    if (companyId) filter.companyId = companyId;
+    if (req.user.role !== 'admin' && companyId) filter.companyId = companyId;
     if (status) filter.status = status;
     
     const certificates = await applicationModel.find(filter)
@@ -49,23 +50,23 @@ const generateCertificate = async (req, res, next) => {
     // Find the approved application
     const application = await applicationModel.findById(applicationId);
     if (!application) {
-      return res.status(404).json({ message: 'Application not found' });
+        return res.status(404).json({ message: 'Application not found' });
     }
     
     if (application.status !== 'Approved') {
-      return res.status(400).json({ message: 'Application must be approved to generate certificate' });
+        return res.status(400).json({ message: 'Application must be approved to generate certificate' });
     }
     
     // Check if certificate already exists
     const existingCertificate = await applicationModel.findOne({ applicationId });
     if (existingCertificate) {
-      return res.status(400).json({ message: 'Certificate already exists for this application' });
+        return res.status(400).json({ message: 'Certificate already exists for this application' });
     }
     
     // Generate certificate number
     const year = new Date().getFullYear();
     const count = await applicationModel.countDocuments({ 
-      issueDate: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
+        issueDate: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
     });
     const certificateNumber = `CERT-${year}-${String(count + 1).padStart(3, '0')}`;
     
@@ -76,16 +77,16 @@ const generateCertificate = async (req, res, next) => {
     
     // Create certificate
     const certificate = new applicationModel({
-      certificateNumber,
-      certificateType: application.category,
-      standard: 'ISO 22000:2018', // Default standard, can be customized
-      status: 'Active',
-      product: application.product,
-      issueDate,
-      expiryDate,
-      applicationId: application._id,
-      companyId,
-      generatedBy: 'System'
+        certificateNumber,
+        certificateType: application.category,
+        standard: 'ISO 22000:2018', // Default standard, can be customized
+        status: 'Active',
+        product: application.product,
+        issueDate,
+        expiryDate,
+        applicationId: application._id,
+        companyId,
+        generatedBy: 'System'
     });
     
     await certificate.save();

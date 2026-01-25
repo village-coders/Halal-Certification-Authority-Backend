@@ -52,15 +52,16 @@ const getMyProducts = async (req, res, next) =>{
 }
 
 const getAllProducts = async (req, res, next) =>{
-    // const userId = req.user.id;
-    // const company = await userModel.findById(userId)
+
+    // const company = req.user
+
     try {
         const query = req.query;
         let build = {}
 
-        if(query.registrationNo){
-            build.companyId = query.registrationNo
-        }
+        // if(req.user.role !== "admin" && company.registrationNo){
+        //     build.companyId = company.registrationNo
+        // }
         
         if(query.status){
             build.status = query.status

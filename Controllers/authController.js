@@ -38,7 +38,7 @@ const signup = async (req, res, next)=>{
 
         res.status(202).json({
             status: "success",
-            message: "Sign up successful",
+            message: "Sign up successful. Check your email to verify your account",
             user
         })
 
