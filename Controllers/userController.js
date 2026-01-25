@@ -185,6 +185,12 @@ const deleteUser = async (req, res, next)=>{
                 message: "user not found"
             })
         }
+        if(user.id === req.user.id){
+            return res.status(400).json({
+                status: "error",
+                message: "You cannot delete yourself"
+            })
+        }
         await userModel.findByIdAndDelete(id)
         res.status(200).json({
             status: "success",
