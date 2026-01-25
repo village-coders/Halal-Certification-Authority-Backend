@@ -34,7 +34,7 @@ const signup = async (req, res, next)=>{
         }
         
         const companyFirstName = companyName.split(" ")[0]
-        sendVerificationEmail(email, companyName, token)
+        await sendVerificationEmail(email, companyName, token)
 
         res.status(202).json({
             status: "success",

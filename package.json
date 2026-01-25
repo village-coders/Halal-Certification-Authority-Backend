@@ -26,6 +26,7 @@
     "nodemailer": "^7.0.3",
     "path": "^0.12.7",
     "pdfkit": "^0.17.2",
+    "resend": "^6.8.0",
     "storage": "^0.2.0",
     "stripe": "^18.2.1",
     "validator": "^13.15.15"
