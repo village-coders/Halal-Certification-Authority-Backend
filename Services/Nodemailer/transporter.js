@@ -10,9 +10,9 @@ const transporter = nodemailer.createTransport({
         user: process.env.Nodemailer_User,
         pass: process.env.Nodemailer_Pass
     },
-    // tls: {
-    //     rejectUnauthorized: false, // Bypasses certificate validation
-    // },
+    tls: {
+        rejectUnauthorized: false, // Bypasses certificate validation
+    },
 
 })
 module.exports = transporter
