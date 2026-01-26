@@ -1,7 +1,8 @@
 const { default: mongoose } = require("mongoose");
 const userModel = require("../Models/user");
 const generateRandomString = require("../Utils/generateRandomString");
-const bcrypt = require("bcryptjs")
+const bcrypt = require("bcryptjs");
+const sendVerificationEmail = require("../Services/Resend/sendVerificationEmail");
 
 const getAllUsers = async (req, res, next) => {
     const query = req.query;
@@ -127,7 +128,7 @@ const createUser = async (req, res, next)=>{
         }
         
         // const companyFirstName = companyName.split(" ")[0]
-        sendVerificationEmail(email, companyName, token)
+        await sendVerificationEmail(email, fullName, token)
 
         res.status(202).json({
             status: "success",
