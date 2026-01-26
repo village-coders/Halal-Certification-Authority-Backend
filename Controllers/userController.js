@@ -103,6 +103,14 @@ const createUser = async (req, res, next)=>{
         //         message: "Image upload failed or missing",
         //     });
         // }
+        const existingUser = await userModel.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({
+                status: "error",
+                message: "User with this email already exists",
+            });
+        }
+        
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
