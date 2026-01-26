@@ -85,6 +85,11 @@ const productSchema = new mongoose.Schema(
       default: "requested"
     },
 
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+
     // Ownership / audit
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

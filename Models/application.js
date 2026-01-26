@@ -30,11 +30,26 @@ const applicationSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  // New fields for Halal certification history
+  hasAppliedBefore: {
+    type: String,
+    required: true
+  },
+  previousHalalAgency: {
+    type: String
+  },
+  hasBeenSupervisedBefore: {
+    type: String,
+    required: true
+  },
+  supervisingHalalAgency: {
+    type: String
+  },
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
 });
 
 const applicationModel = mongoose.model('application', applicationSchema);
-module.exports = applicationModel
+module.exports = applicationModel;
