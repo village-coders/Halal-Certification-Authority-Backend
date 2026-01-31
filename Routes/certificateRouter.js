@@ -17,13 +17,13 @@ certificateRouter.get('/', isLoggedIn, getCertificates);
 certificateRouter.get('/:id', getCertificate);
 
 // POST generate certificate
-certificateRouter.post('/generate', generateCertificate);
+certificateRouter.post('/generate/:id', generateCertificate);
 
 // GET download certificate PDF
 certificateRouter.get('/:id/download', downloadCertificate);
 
 // POST renew certificate
-certificateRouter.post('/renew', renewCertificate);
+certificateRouter.post('/renew/:id', renewCertificate);
 
 // GET expiring certificates
 certificateRouter.get('/expiring/soon', getExpiringCertificates);

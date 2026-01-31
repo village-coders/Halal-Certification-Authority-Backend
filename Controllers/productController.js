@@ -51,9 +51,31 @@ const getMyProducts = async (req, res, next) =>{
     }
 }
 
-const getAllProducts = async (req, res, next) =>{
+const getSingleProducts = async (req, res, next) =>{
+    // const company = await userModel.findById(userId)
+    const {id} = req.params
+    try {
+        const product = await productModel.findById(id)
+        if(!product){
+            return res.status(404).json({
+                status: "success",
+                message: "You have no product available",
+                product: []
+            })
+        }
 
-    // const company = req.user
+        res.status(200).json({
+            status: "success",
+            message: `Products loaded successfully`,
+            product
+        })
+    } catch (error) {
+        console.log(error);
+        next(error);      
+    }
+}
+
+const getAllProducts = async (req, res, next) =>{
 
     try {
         const query = req.query;
@@ -111,5 +133,6 @@ module.exports = {
     createProduct,
     getMyProducts,
     deleteMyProduct,
-    getAllProducts
+    getAllProducts,
+    getSingleProducts
 }

@@ -208,30 +208,36 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
-        // if (!user.isVerified) {
-        //     const now = new Date();
+        if (!user.isVerified) {
+            const now = new Date();
 
-        //     // ✅ If verification code is missing or expired, regenerate
-        //     if (!user.verificationExp || user.verificationExp < now) {
-        //         const userFirstName = user.fullName.split(" ")[0]
-        //         const newCode = generateRandomString(8)
+            // ✅ If verification code is missing or expired, regenerate
+            if (!user.verificationExp || user.verificationExp < now) {
+                const userFirstName = user.fullName.split(" ")[0]
+                const newCode = generateRandomString(8)
 
-        //         user.verificationToken = newCode;
-        //         user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
-        //         await user.save();
+                user.verificationToken = newCode;
+                user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
+                await user.save();
 
-        //         // ✅ Send the new code via email (mock or real)
-        //         await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
+                // ✅ Send the new code via email (mock or real)
+                await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
 
-        //         return res.status(403).json({
-        //             message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
-        //         });
-        //     }
+                return res.status(403).json({
+                    message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
+                });
+            }
 
-        //     return res.status(403).json({
-        //         message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
-        //     });
-        // }
+            return res.status(403).json({
+                message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
+            });
+        }
+
+        if(user.role !== "admin"){
+            return res.status(400).json({
+                message: "You are not an administrator"
+            })
+        }
 
 
         const accessToken = jwt.sign(

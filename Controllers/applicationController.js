@@ -232,6 +232,52 @@ const searchApplications = async (req, res) => {
   }
 };
 
+const rejectApplication = async (req, res) => {
+  const {id} = req.params
+  try {
+    const application = await applicationModel.findById(id)
+    if(!application){
+      return res.status(404).json({
+        status: "error",
+        message: "No application with this id found"
+      })
+    }
+
+    application.status = "Rejected"
+    await application.save()
+
+    res.status(200).json({
+      status: "success",
+      message: "Application deleted successfully"
+    })
+  } catch (error) {
+    console.log(error);    
+  }
+}
+
+const approveApplication = async (req, res) => {
+  const {id} = req.params
+  try {
+    const application = await applicationModel.findById(id)
+    if(!application){
+      return res.status(404).json({
+        status: "error",
+        message: "No application with this id found"
+      })
+    }
+
+    application.status = "Approved"
+    await application.save()
+
+    res.status(200).json({
+      status: "success",
+      message: "Application deleted successfully"
+    })
+  } catch (error) {
+    console.log(error);    
+  }
+}
+
 module.exports = {
   getApplications,
   getApplication,
@@ -239,5 +285,7 @@ module.exports = {
   updateApplication,
   deleteApplication,
   getRenewalApplications,
-  searchApplications
+  searchApplications,
+  rejectApplication,
+  approveApplication
 };

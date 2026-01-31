@@ -6,7 +6,9 @@ const {
   createApplication,
   updateApplication,
   deleteApplication,
-  getRenewalApplications
+  getRenewalApplications,
+  approveApplication,
+  rejectApplication
 } = require('../Controllers/applicationController');
 const isLoggedIn = require('../Middlewares/isLoggedIn');
 
@@ -24,6 +26,9 @@ applicationRouter.put('/:id', updateApplication);
 
 // DELETE application
 applicationRouter.delete('/:id', deleteApplication);
+
+applicationRouter.put('/:id/reject', rejectApplication);
+applicationRouter.put('/:id/approve', approveApplication);
 
 // GET applications for renewal
 applicationRouter.get('/eligible/renewal', getRenewalApplications);

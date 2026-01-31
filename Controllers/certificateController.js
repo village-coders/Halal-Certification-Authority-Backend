@@ -3,6 +3,7 @@ const applicationModel = require('../Models/application');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const certificateModel = require('../Models/certificate');
 
 // Get all certificates
 const getCertificates = async (req, res, next) => {
@@ -14,7 +15,7 @@ const getCertificates = async (req, res, next) => {
     if (req.user.role !== 'admin' && companyId) filter.companyId = companyId;
     if (status) filter.status = status;
     
-    const certificates = await applicationModel.find(filter)
+    const certificates = await certificateModel.find(filter)
       .sort({ expiryDate: 1 })
       .populate('applicationId', 'applicationNumber category');
     
@@ -28,7 +29,7 @@ const getCertificates = async (req, res, next) => {
 // Get single certificate
 const getCertificate = async (req, res, next) => {
   try {
-    const certificate = await applicationModel.findById(req.params.id)
+    const certificate = await certificateModel.findById(req.params.id)
       .populate('applicationId', 'applicationNumber category description');
     
     if (!certificate) {
@@ -76,7 +77,7 @@ const generateCertificate = async (req, res, next) => {
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     
     // Create certificate
-    const certificate = new applicationModel({
+    const certificate = new certificateModel({
         certificateNumber,
         certificateType: application.category,
         standard: 'ISO 22000:2018', // Default standard, can be customized
@@ -108,7 +109,7 @@ const generateCertificate = async (req, res, next) => {
 // Download certificate PDF
 const downloadCertificate = async (req, res, next) => {
   try {
-    const certificate = await applicationModel.findById(req.params.id);
+    const certificate = await certificateModel.findById(req.params.id);
     
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
@@ -130,9 +131,9 @@ const downloadCertificate = async (req, res, next) => {
 // Renew certificate
 const renewCertificate = async (req, res, next) => {
   try {
-    const { certificateId } = req.body;
+    const { certificateId } = req.params;
     
-    const certificate = await applicationModel.findById(certificateId);
+    const certificate = await certificateModel.findById(certificateId);
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
@@ -151,7 +152,7 @@ const renewCertificate = async (req, res, next) => {
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     
     // Create new certificate
-    const newCertificate = new applicationModel({
+    const newCertificate = new certificateModel({
       certificateNumber: newCertificateNumber,
       certificateType: certificate.certificateType,
       standard: certificate.standard,
@@ -196,7 +197,7 @@ const getExpiringCertificates = async (req, res, next) => {
     
     if (companyId) filter.companyId = companyId;
     
-    const certificates = await applicationModel.find(filter)
+    const certificates = await certificateModel.find(filter)
       .sort({ expiryDate: 1 })
       .populate('applicationId', 'applicationNumber');
     
