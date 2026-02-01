@@ -9,15 +9,15 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
     console.log("📤 Sending verification email to:", email);
 
     const data = await resend.emails.send({
-      from: "Halal Food Certification <onboarding@theyoungpioneers.com>",
+      from: "Halal and Haram Distinction Development Initiative <onboarding@theyoungpioneers.com>",
       to: email,
-      subject: "✅ Verify Your Email for Halal Food Certification",
+      subject: "✅ Verify Your Email for Halal and Haram Distinction Development Initiative",
       html: `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
           <p>Dear ${userFirstName},</p>
 
           <p>
-            Thank you for applying with <strong>Halal Food Certification</strong>.
+            Thank you for applying with <strong>Halal and Haram Distinction Development Initiative</strong>.
           </p>
 
           <p>
@@ -31,7 +31,7 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
             </a>
           </p>
 
-          <p>The Halal Food Certification Team</p>
+          <p>The Halal and Haram Distinction Development Initiative Team</p>
         </div>
       `,
     });

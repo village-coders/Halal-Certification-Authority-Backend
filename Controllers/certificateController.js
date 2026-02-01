@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const certificateModel = require('../Models/certificate');
 const userModel = require('../Models/user');
+const sendCertificateIssuedEmail = require('../Services/Resend/certificateIssuedEmail');
 
 // Get all certificates
 const getCertificates = async (req, res, next) => {
@@ -55,7 +56,7 @@ const generateCertificate = async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    // Find the approved application
+    // Find the approved application  
     const application = await applicationModel.findById(id);
     console.log(application)
     if (!application) {
@@ -98,17 +99,23 @@ const generateCertificate = async (req, res, next) => {
         expiryDate,
         applicationId: application._id,
         companyId: application.companyId,
-        generatedBy: req.user.name
+        generatedBy: "Admin"
     });
     
-    await certificate.save();
     
+    const company = await userModel.findOne({registrationNo: application.companyId})
+    if(!company){
+      return res.status(404).json({message: "company not found"})
+    }
+    // Generate PDF
+    
+    await certificate.save();
     // Update application status
     application.status = 'Issued';
     await application.save();
     
-    // Generate PDF
-    // await generateCertificatePDF(certificate);
+    await generateCertificatePDF(certificate);
+    await sendCertificateIssuedEmail(company.email, company.companyName, application.applicationNumber, certificate.certificateNumber)
     
     res.status(201).json(certificate);
   } catch (error) {

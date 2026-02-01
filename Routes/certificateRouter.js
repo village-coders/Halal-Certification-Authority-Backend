@@ -16,7 +16,7 @@ certificateRouter.get('/', isLoggedIn, getCertificates);
 
 
 // POST generate certificate
-certificateRouter.post('/generate/:id', isLoggedIn, isAdmin, generateCertificate);
+certificateRouter.post('/generate/:id', generateCertificate);
 
 // GET download certificate PDF
 certificateRouter.get('/:id/download', downloadCertificate);

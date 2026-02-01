@@ -74,6 +74,8 @@ const createApplication = async (req, res) => {
     } else {
       applicationNumber = `APP-${timestamp}`;
     }
+
+    // const company = userModel.findOne({})
     
     // Handle Halal certification history fields
     const applicationData = {
@@ -273,7 +275,7 @@ const approveApplication = async (req, res) => {
     }
 
     if(reason) application.reason = reason
-    
+
     
     application.status = "Approved"
     console.log(application);

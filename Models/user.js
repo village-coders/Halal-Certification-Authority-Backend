@@ -92,6 +92,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  hasApplication: {
+    type: Boolean,
+    default: false
+  },
   department: {
     type: String,
     // required: true
