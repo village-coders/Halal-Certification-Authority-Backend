@@ -14,7 +14,12 @@ const getAllUsers = async (req, res, next) => {
             filter.registrationNo = query.companyId;
         }
         
-        filter.role = "company";
+        if(query.role){
+            filter.role = query.role
+        }else{
+            filter.role = "company";
+        }
+        
         filter.isUnderCompany = false
 
         if(query.isUnderCompany){

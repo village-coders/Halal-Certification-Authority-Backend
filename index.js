@@ -15,6 +15,7 @@ const errorHandler = require("./Middlewares/errorHandler");
 const isLoggedIn = require('./Middlewares/isLoggedIn');
 const applicationRouter = require('./Routes/applicationRouter');
 const certificateRouter = require('./Routes/certificateRouter');
+const messageRouter = require('./Routes/messageRouter');
 
 const clientDomain = process.env.client_domain
 
@@ -37,6 +38,7 @@ app.use("/api/users", userRouter)
 app.use("/api/products", productRouter)
 app.use("/api/applications", applicationRouter)
 app.use("/api/certificates", certificateRouter)
+app.use("/api/messages", messageRouter)
 
 app.use(express.json())
 
