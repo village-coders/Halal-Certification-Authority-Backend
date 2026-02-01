@@ -18,12 +18,26 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "product",
+    required: true
+  },
   description: {
     type: String,
     default: ''
   },
+  type: {
+    type: String,
+    enum: ["New", "Renewal"],
+    default: "New"
+  },
+  reason: {
+    type: String,
+  },
   status: {
     type: String,
+    enum: ["Submitted", "Issued", "Renewal", "Rejected", "Approved"],
     default: 'Submitted'
   },
   requestedDate: {

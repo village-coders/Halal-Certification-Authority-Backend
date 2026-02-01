@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ref } = require('pdfkit');
 
 const certificateSchema = new mongoose.Schema({
   certificateNumber: {
@@ -9,14 +10,14 @@ const certificateSchema = new mongoose.Schema({
   certificateType: {
     type: String,
     required: true,
-    enum: [
-      'Food Safety Certification',
-      'Quality Management System',
-      'Environmental Management',
-      'Occupational Health & Safety',
-      'Halal Certification',
-      'Organic Certification'
-    ]
+    // enum: [
+    //   'Food Safety Certification',
+    //   'Quality Management System',
+    //   'Environmental Management',
+    //   'Occupational Health & Safety',
+    //   'Halal Certification',
+    //   'Organic Certification'
+    // ]
   },
   standard: {
     type: String,
@@ -38,8 +39,9 @@ const certificateSchema = new mongoose.Schema({
     default: 'Active'
   },
   product: {
-    type: String,
-    required: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "product",
+    required: true,
   },
   issueDate: {
     type: Date,

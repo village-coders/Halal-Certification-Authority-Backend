@@ -18,7 +18,7 @@ const getApplications = async (req, res) => {
         build.companyId = company.registrationNo
     }    
 
-    const applications = await applicationModel.find(build).sort({ createdAt: -1 });
+    const applications = await applicationModel.find(build).sort({ createdAt: -1 }).populate('productId');
     res.json(applications);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -28,7 +28,7 @@ const getApplications = async (req, res) => {
 // Get single application
 const getApplication = async (req, res) => {
   try {
-    const application = await applicationModel.findById(req.params.id);
+    const application = await applicationModel.findById(req.params.id).populate('productId');
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
@@ -41,7 +41,7 @@ const getApplication = async (req, res) => {
 // Create application
 const createApplication = async (req, res) => {
     const id = req.user.id
-    const {product, category} = req.body
+    const {product, category, productId} = req.body
     
   try {
     const company = await userModel.findById(id)
@@ -52,6 +52,7 @@ const createApplication = async (req, res) => {
       const existingApplication = await applicationModel.findOne({
         companyId: company.registrationNo,
         product,
+        productId,
         category: { $ne: 'Renewal Application' } // Exclude renewals from check
       });
       
@@ -64,7 +65,7 @@ const createApplication = async (req, res) => {
 
     // Generate application number
     const timestamp = Date.now().toString().slice(-8);
-    const prefix = company.companyName.slice(0, 2).toUpperCase();
+    // const prefix = company.companyName.slice(0, 2).toUpperCase();
     
     // Use different prefix for renewals
     let applicationNumber;
@@ -183,6 +184,7 @@ const getRenewalApplications = async (req, res) => {
   }
 };
 
+
 // Search applications
 const searchApplications = async (req, res) => {
   const { applicationNumber, date, status, category } = req.query;
@@ -234,6 +236,7 @@ const searchApplications = async (req, res) => {
 
 const rejectApplication = async (req, res) => {
   const {id} = req.params
+  const {reason} = req.body
   try {
     const application = await applicationModel.findById(id)
     if(!application){
@@ -243,7 +246,9 @@ const rejectApplication = async (req, res) => {
       })
     }
 
+    application.reason = reason
     application.status = "Rejected"
+    
     await application.save()
 
     res.status(200).json({
@@ -257,6 +262,7 @@ const rejectApplication = async (req, res) => {
 
 const approveApplication = async (req, res) => {
   const {id} = req.params
+  const {reason} = req.body
   try {
     const application = await applicationModel.findById(id)
     if(!application){
@@ -266,12 +272,48 @@ const approveApplication = async (req, res) => {
       })
     }
 
+    if(reason) application.reason = reason
+    
+    
     application.status = "Approved"
+    console.log(application);
     await application.save()
 
     res.status(200).json({
       status: "success",
-      message: "Application deleted successfully"
+      message: "Application approved successfully"
+    })
+  } catch (error) {
+    console.log(error);    
+  }
+}
+
+const renewApplication = async (req, res) => {
+  const {id} = req.params
+  try {
+    const application = await applicationModel.findById(id)
+    
+    if(!application){
+      return res.status(404).json({
+        status: "error",
+        message: "No application with this id found"
+      })
+    }
+
+    if(application.status !== "Issued"){
+      return res.status(400).json({
+        status: "error",
+        message: "You can only renew issued applications"
+      })
+    }
+
+    application.status = "Renewal"
+
+    await application.save()
+
+    res.status(200).json({
+      status: "success",
+      message: "Application Renewed successfully"
     })
   } catch (error) {
     console.log(error);    
@@ -287,5 +329,6 @@ module.exports = {
   getRenewalApplications,
   searchApplications,
   rejectApplication,
-  approveApplication
+  approveApplication,
+  renewApplication
 };

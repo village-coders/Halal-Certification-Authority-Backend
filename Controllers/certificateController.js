@@ -4,6 +4,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const certificateModel = require('../Models/certificate');
+const userModel = require('../Models/user');
 
 // Get all certificates
 const getCertificates = async (req, res, next) => {
@@ -17,7 +18,9 @@ const getCertificates = async (req, res, next) => {
     
     const certificates = await certificateModel.find(filter)
       .sort({ expiryDate: 1 })
-      .populate('applicationId', 'applicationNumber category');
+      .populate('applicationId', 'applicationNumber category')
+      .populate('product', 'name category status');
+
     
     res.json(certificates);
   } catch (error) {
@@ -30,11 +33,15 @@ const getCertificates = async (req, res, next) => {
 const getCertificate = async (req, res, next) => {
   try {
     const certificate = await certificateModel.findById(req.params.id)
-      .populate('applicationId', 'applicationNumber category description');
+      .populate('applicationId', 'applicationNumber category description')
+      .populate('product', 'name category status');
     
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
+
+    const company = await userModel.findOne({registrationNo: certificate.companyId})
+
     
     res.json(certificate);
   } catch (error) {
@@ -46,10 +53,11 @@ const getCertificate = async (req, res, next) => {
 // Generate certificate from approved application
 const generateCertificate = async (req, res, next) => {
   try {
-    const { applicationId, companyId } = req.body;
+    const { id } = req.params;
     
     // Find the approved application
-    const application = await applicationModel.findById(applicationId);
+    const application = await applicationModel.findById(id);
+    console.log(application)
     if (!application) {
         return res.status(404).json({ message: 'Application not found' });
     }
@@ -59,15 +67,18 @@ const generateCertificate = async (req, res, next) => {
     }
     
     // Check if certificate already exists
-    const existingCertificate = await applicationModel.findOne({ applicationId });
+    const existingCertificate = await certificateModel.findOne({
+      applicationId: application._id
+    });
+    
     if (existingCertificate) {
         return res.status(400).json({ message: 'Certificate already exists for this application' });
     }
     
     // Generate certificate number
     const year = new Date().getFullYear();
-    const count = await applicationModel.countDocuments({ 
-        issueDate: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
+    const count = await certificateModel.countDocuments({ 
+      issueDate: { $gte: new Date(`${year}-01-01`), $lt: new Date(`${year + 1}-01-01`) }
     });
     const certificateNumber = `CERT-${year}-${String(count + 1).padStart(3, '0')}`;
     
@@ -82,22 +93,22 @@ const generateCertificate = async (req, res, next) => {
         certificateType: application.category,
         standard: 'ISO 22000:2018', // Default standard, can be customized
         status: 'Active',
-        product: application.product,
+        product: application.productId,
         issueDate,
         expiryDate,
         applicationId: application._id,
-        companyId,
-        generatedBy: 'System'
+        companyId: application.companyId,
+        generatedBy: req.user.name
     });
     
     await certificate.save();
     
     // Update application status
-    application.status = 'Certified';
+    application.status = 'Issued';
     await application.save();
     
     // Generate PDF
-    await generateCertificatePDF(certificate);
+    // await generateCertificatePDF(certificate);
     
     res.status(201).json(certificate);
   } catch (error) {

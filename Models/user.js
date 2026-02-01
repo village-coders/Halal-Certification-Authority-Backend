@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   isUnderCompany: {
-    type: String,
+    type: Boolean,
     default: false
   },
   address: {
@@ -87,6 +87,10 @@ const userSchema = new mongoose.Schema({
   website: {
     type: String,
     // required: true
+  },
+  approvedProducts: {
+    type: Number,
+    default: 0
   },
   department: {
     type: String,

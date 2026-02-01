@@ -15,7 +15,11 @@ const getAllUsers = async (req, res, next) => {
         }
         
         filter.role = "company";
-        filter.isUnderCompany = "false"
+        filter.isUnderCompany = false
+
+        if(query.isUnderCompany){
+            filter.isUnderCompany = true
+        }
 
         // You might also want to exclude sensitive fields
         const users = await userModel.find(filter).select('-password -__v');
