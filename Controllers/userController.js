@@ -3,6 +3,7 @@ const userModel = require("../Models/user");
 const generateRandomString = require("../Utils/generateRandomString");
 const bcrypt = require("bcryptjs");
 const sendVerificationEmail = require("../Services/Resend/sendVerificationEmail");
+const sendVerificationEmailToAdmin = require("../Services/Resend/sendVerificationEmailToAdmin");
 
 const getAllUsers = async (req, res, next) => {
     const query = req.query;
@@ -19,7 +20,7 @@ const getAllUsers = async (req, res, next) => {
         }else{
             filter.role = "company";
         }
-        
+
         filter.isUnderCompany = false
 
         if(query.isUnderCompany){
@@ -126,7 +127,7 @@ const createUser = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const user = await userModel.create({...company, email, fullName, department, password: hashedPassword, isVerified: true, registrationNo: company.registrationNo, isUnderCompany: true, companyName: company.companyName, verificationToken: token, verificationExp})
+        const user = await userModel.create({...company, email, fullName, department, password: hashedPassword, registrationNo: company.registrationNo, isUnderCompany: true, companyName: company.companyName, verificationToken: token, verificationExp})
         
         if(!user){
             return res.status(404).json({
@@ -142,6 +143,53 @@ const createUser = async (req, res, next)=>{
             status: "success",
             message: "Sign up successful",
             user
+        })
+
+    } catch (error) {
+        console.log(error)
+        next(error)      
+    }
+}
+
+
+const createAdmin = async (req, res, next)=>{
+    // const file = req.file.path
+    const {fullName, email, password} = req.body
+    // const id = req.user.id
+    try {
+        // const company = await userModel.findById(id)
+
+        const existingUser = await userModel.findOne({ email });
+
+        if (existingUser) {
+            return res.status(400).json({
+                status: "error",
+                message: "User with this email already exists",
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, salt)
+
+        const token = generateRandomString(8)
+        const verificationExp = Date.now() + 300000
+
+        const admin = await userModel.create({ email, fullName, role: "admin", password: hashedPassword, isVerified: false, verificationToken: token, verificationExp})
+        
+        if(!admin){
+            return res.status(404).json({
+                status: "error",
+                message: "could not sign up"
+            })
+        }
+        
+        // const companyFirstName = companyName.split(" ")[0]
+        await sendVerificationEmailToAdmin(email, fullName, token)
+
+        res.status(202).json({
+            status: "success",
+            message: "Sign up successful",
+            admin
         })
 
     } catch (error) {
@@ -224,5 +272,6 @@ module.exports = {
     getUserById,
     deleteUser,
     updateUser,
-    createUser
+    createUser,
+    createAdmin
 }
