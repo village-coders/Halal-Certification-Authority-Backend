@@ -230,7 +230,7 @@ const adminLogin = async (req, res, next) => {
                 await user.save();
 
                 // ✅ Send the new code via email (mock or real)
-                await sendVerificationEmailToAdmin(user.email, userFirstName, newCode); // You implement this
+                await sendVerificationEmailToAdmin(user.email, userFirstName.toUpperCase(), newCode); // You implement this
 
                 return res.status(403).json({
                     status: "error",

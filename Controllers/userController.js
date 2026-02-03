@@ -43,6 +43,9 @@ const getAllUsers = async (req, res, next) => {
         next(error);
     }
 }
+
+
+
 const getUserById = async (req, res, next) => {
     const { id } = req.params;
     
@@ -136,8 +139,8 @@ const createUser = async (req, res, next)=>{
             })
         }
         
-        // const companyFirstName = companyName.split(" ")[0]
-        await sendVerificationEmail(email, fullName, token)
+        const firstName = fullName.split(" ")[0]
+        await sendVerificationEmail(email, firstName.toUpperCase(), token)
 
         res.status(202).json({
             status: "success",
@@ -151,6 +154,73 @@ const createUser = async (req, res, next)=>{
     }
 }
 
+
+// findByIdAndUpdate(id, body)
+const updateUser = async (req, res, next) => {
+    const { id } = req.params;
+    
+    try {
+        // if (!req.file || !req.file.path) {
+        //     return res.status(400).json({
+        //         status: "error",
+        //         message: "Image upload failed or missing",
+        //     });
+        // }
+
+        const updatedFields = {
+            ...req.body,              // Spread all fields from form
+            // authImage: req.file.path  // Add uploaded image path
+        };
+
+        const updatedUser = await userModel.findByIdAndUpdate(id, updatedFields, { new: true });
+
+        if (!updatedUser) {
+            return res.status(400).json({
+                status: "error",
+                message: "User not updated",
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: "User updated!",
+            user: updatedUser
+        });
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
+// findByIdAndDelete(id)
+
+const deleteUser = async (req, res, next)=>{
+    const {id} = req.params
+    try{
+        // check if user exist
+        const user = await userModel.findById(id)
+        if(!user){
+            return res.status(404).json({
+                status: "error",
+                message: "user not found"
+            })
+        }
+        if(user.id === req.user.id){
+            return res.status(400).json({
+                status: "error",
+                message: "You cannot delete yourself"
+            })
+        }
+        await userModel.findByIdAndDelete(id)
+        res.status(200).json({
+            status: "success",
+            message: "user has been deleted"
+        })
+    } catch(error) {
+        console.log(error);
+        next(error);
+    }
+}
 
 const createAdmin = async (req, res, next)=>{
     // const file = req.file.path
@@ -189,8 +259,8 @@ const createAdmin = async (req, res, next)=>{
             })
         }
         
-        // const companyFirstName = companyName.split(" ")[0]
-        await sendVerificationEmailToAdmin(email, fullName, token)
+        const adminFirstName = fullName.split(" ")[0]
+        await sendVerificationEmailToAdmin(email, adminFirstName.toUpperCase(), token)
 
         res.status(202).json({
             status: "success",
@@ -204,74 +274,37 @@ const createAdmin = async (req, res, next)=>{
     }
 }
 
-// findByIdAndUpdate(id, body)
-// findByIdAndDelete(id)
-
-const updateUser = async (req, res, next) => {
-    const { id } = req.params;
+const getAllAdmin = async (req, res, next) => {
+  try {
     
-    try {
-        // if (!req.file || !req.file.path) {
-        //     return res.status(400).json({
-        //         status: "error",
-        //         message: "Image upload failed or missing",
-        //     });
-        // }
-
-        const updatedFields = {
-            ...req.body,              // Spread all fields from form
-            // authImage: req.file.path  // Add uploaded image path
-        };
-
-        const updatedUser = await userModel.findByIdAndUpdate(id, updatedFields, { new: true });
-
-        if (!updatedUser) {
-            return res.status(400).json({
-                status: "error",
-                message: "User not updated",
-            });
-        }
-
-        res.status(200).json({
-            status: 'success',
-            message: "User updated!",
-            user: updatedUser
-        });
-    } catch (error) {
-        console.error(error);
-        next(error);
+    if (req.user.role !== "super admin") {
+      return res.status(403).json({
+        status: "error",
+        message: "You must be a super admin to perform this action.",
+      });
     }
+
+    const users = await userModel
+      .find({
+        role: { $in: ["admin", "super admin"] }
+      })
+      .select("-password -__v");
+
+    res.status(200).json({
+      status: "success",
+      message: users.length
+        ? "Admins fetched successfully!"
+        : "No admins found",
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 
 
-const deleteUser = async (req, res, next)=>{
-    const {id} = req.params
-    try{
-        // check if user exist
-        const user = await userModel.findById(id)
-        if(!user){
-            return res.status(404).json({
-                status: "error",
-                message: "user not found"
-            })
-        }
-        if(user.id === req.user.id){
-            return res.status(400).json({
-                status: "error",
-                message: "You cannot delete yourself"
-            })
-        }
-        await userModel.findByIdAndDelete(id)
-        res.status(200).json({
-            status: "success",
-            message: "user has been deleted"
-        })
-    } catch(error) {
-        console.log(error);
-        next(error);
-    }
-}
 
 module.exports = {
     getAllUsers,
@@ -279,5 +312,6 @@ module.exports = {
     deleteUser,
     updateUser,
     createUser,
-    createAdmin
+    createAdmin,
+    getAllAdmin
 }
