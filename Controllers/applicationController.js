@@ -14,7 +14,7 @@ const getApplications = async (req, res) => {
     if(query.category){
         build.category = query.category
     }
-    if(req.user.role !== "admin" && company.registrationNo){
+    if(req.user.role !== "admin" && company.registrationNo && req.user.role !== "super admin"){
         build.companyId = company.registrationNo
     }    
 
