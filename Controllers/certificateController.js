@@ -14,7 +14,7 @@ const getCertificates = async (req, res, next) => {
     const companyId = req.user.registrationNo;
     
     const filter = {};
-    if (req.user.role !== 'admin' && companyId) filter.companyId = companyId;
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin' && companyId) filter.companyId = companyId;
     if (status) filter.status = status;
     
     const certificates = await certificateModel.find(filter)

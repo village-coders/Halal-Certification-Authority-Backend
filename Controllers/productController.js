@@ -82,7 +82,7 @@ const getAllProducts = async (req, res, next) =>{
         const query = req.query;
         let build = {}
 
-        // if(req.user.role !== "admin" && company.registrationNo){
+        // if(req.user.role !== "admin" && company.registrationNo && req.user.role !== "super admin"){
         //     build.companyId = company.registrationNo
         // }
         

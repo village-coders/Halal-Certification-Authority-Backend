@@ -65,14 +65,14 @@ const createApplication = async (req, res) => {
 
     // Generate application number
     const timestamp = Date.now().toString().slice(-8);
-    // const prefix = company.companyName.slice(0, 2).toUpperCase();
+    const prefix = company.companyName.slice(0, 2).toUpperCase();
     
     // Use different prefix for renewals
     let applicationNumber;
     if (category === 'Renewal Application') {
-      applicationNumber = `REN-${timestamp}`;
+      applicationNumber = `${prefix}REN-${timestamp}`;
     } else {
-      applicationNumber = `APP-${timestamp}`;
+      applicationNumber = `${prefix}-APP-${timestamp}`;
     }
 
     // const company = userModel.findOne({})
@@ -172,7 +172,7 @@ const getRenewalApplications = async (req, res) => {
     };
     
     // If not admin, only show their own applications
-    if (req.user.role !== "admin" && company.registrationNo) {
+    if (req.user.role !== "admin" && company.registrationNo && req.user.role !== "super admin") {
       build.companyId = company.registrationNo;
     }
     
@@ -223,7 +223,7 @@ const searchApplications = async (req, res) => {
     }
     
     // If not admin, only show their own applications
-    if (req.user.role !== "admin" && company.registrationNo) {
+    if (req.user.role !== "admin" && company.registrationNo && req.user.role !== "super admin") {
       build.companyId = company.registrationNo;
     }
     

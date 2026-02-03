@@ -203,7 +203,7 @@ exports.getAdminConversation = async (req, res) => {
 exports.getAllMessages = async (req, res) => {
   try {
     // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -259,7 +259,7 @@ exports.getAllMessages = async (req, res) => {
 exports.sendAdminMessage = async (req, res) => {
   try {
     // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -342,7 +342,7 @@ exports.sendAdminMessage = async (req, res) => {
 exports.getAllUserConversations = async (req, res) => {
   try {
     // Check if user is admin
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -438,7 +438,7 @@ exports.getAllUserConversations = async (req, res) => {
 // Admin: Get conversation with specific user
 exports.getUserConversation = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -484,7 +484,7 @@ exports.getUserConversation = async (req, res) => {
 // Admin: Mark all messages as read for a user
 exports.markUserConversationAsRead = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -521,7 +521,7 @@ exports.markUserConversationAsRead = async (req, res) => {
 // Admin: Mark all conversations as read
 exports.markAllAsRead = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -555,7 +555,7 @@ exports.markAllAsRead = async (req, res) => {
 // Admin: Archive conversation
 exports.archiveConversation = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
@@ -587,7 +587,7 @@ exports.archiveConversation = async (req, res) => {
 // Admin: Delete conversation
 exports.deleteConversation = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
       return res.status(403).json({
         status: 'error',
         message: 'Access denied. Admin only.'
