@@ -126,6 +126,13 @@ const login = async (req, res, next) => {
             });
         }
 
+        if (user.role !== "company") {
+            return res.status(403).json({
+                status: "error",
+                message: "You are not a company"
+            });
+        }
+
         if (!user.isVerified) {
             const now = new Date();
 
@@ -143,25 +150,27 @@ const login = async (req, res, next) => {
 
 
                 return res.status(403).json({
+                    status: "error",
                     message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
                 });
             }
 
             return res.status(403).json({
+                status: "error",
                 message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
             });
         }
 
 
         const accessToken = jwt.sign(
-            { id: user._id, name: user.name, email: user.email },
+            { id: user._id, name: user.fullName, email: user.email },
             process.env.jwt_secret,
             { expiresIn: process.env.jwt_exp }
         );
 
         const userData = {
             _id: user._id,
-            name: user.name,
+            name: user.fullName,
             email: user.email,
             isVerified: user.isVerified,
             role: user.role,
@@ -221,14 +230,16 @@ const adminLogin = async (req, res, next) => {
                 await user.save();
 
                 // ✅ Send the new code via email (mock or real)
-                await sendVerificationEmail(user.email, userFirstName, newCode); // You implement this
+                await sendVerificationEmailToAdmin(user.email, userFirstName, newCode); // You implement this
 
                 return res.status(403).json({
+                    status: "error",
                     message: "Email not verified. A new verification code has been sent. Check your spam if not appeared in inbox.",
                 });
             }
 
             return res.status(403).json({
+                status: "error",
                 message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
             });
         }

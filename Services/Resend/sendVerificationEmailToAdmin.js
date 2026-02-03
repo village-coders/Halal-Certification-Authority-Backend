@@ -8,7 +8,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
   try {
     console.log("📤 Sending admin verification email to:", email);
 
-    const verificationLink = `${process.env.CLIENT_DOMAIN}/admin/verify/${token}`;
+    const verificationLink = `${process.env.ADMIN_DOMAIN}/admin/verify/${token}`;
 
     const data = await resend.emails.send({
       from: "Halal & Haram Distinction Dev Initiative <onboarding@theyoungpioneers.com>",
