@@ -1,0 +1,42 @@
+.country-select {
+  position: relative;
+  width: 100%;
+}
+
+.country-select input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.dropdown li {
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.dropdown li:hover {
+  background: #f0f4ff;
+}
+
+.no-result {
+  padding: 8px 12px;
+  color: #666;
+  font-style: italic;
+}
