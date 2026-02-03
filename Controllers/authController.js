@@ -232,23 +232,25 @@ const adminLogin = async (req, res, next) => {
                 message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
             });
         }
+        
 
-        if(user.role !== "admin" || user.role !== "super admin"){
-            return res.status(400).json({
+        if(user.role !== "admin" && user.role !== "super admin"){
+            return res.status(403).json({
+                status: "error",
                 message: "You are not an administrator"
             })
         }
 
 
         const accessToken = jwt.sign(
-            { id: user._id, name: user.name, email: user.email },
+            { id: user._id, name: user.fullName, email: user.email },
             process.env.jwt_secret,
             { expiresIn: process.env.jwt_exp }
         );
 
         const userData = {
             _id: user._id,
-            name: user.name,
+            name: user.fullName,
             email: user.email,
             isVerified: user.isVerified,
             role: user.role,

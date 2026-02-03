@@ -160,7 +160,7 @@ const createAdmin = async (req, res, next)=>{
         if(req.user.role !== "super admin"){
             return res.status(400).json({
                 status: "error",
-                message: "You are not an admin",
+                message: "UnAuthorized. You are not an super admin",
             });
         }
         // const company = await userModel.findById(id)
