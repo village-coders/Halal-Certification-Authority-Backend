@@ -157,6 +157,12 @@ const createAdmin = async (req, res, next)=>{
     const {fullName, email, password} = req.body
     // const id = req.user.id
     try {
+        if(req.user.role !== "super admin"){
+            return res.status(400).json({
+                status: "error",
+                message: "You are not an admin",
+            });
+        }
         // const company = await userModel.findById(id)
 
         const existingUser = await userModel.findOne({ email });

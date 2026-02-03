@@ -233,7 +233,7 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
-        if(user.role !== "admin"){
+        if(user.role !== "admin" || user.role !== "super admin"){
             return res.status(400).json({
                 message: "You are not an administrator"
             })

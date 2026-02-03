@@ -57,7 +57,7 @@ const userSchema = new mongoose.Schema({
   },
   registrationNo: {
     type: String,
-    required: true
+    // required: true
   },
   isUnderCompany: {
     type: Boolean,
@@ -81,7 +81,7 @@ const userSchema = new mongoose.Schema({
   },
   position: {
     type: String,
-    required: true,
+    // required: true,
     default: "company"
   },
   website: {

@@ -10,6 +10,8 @@ userRouter.put("/:id",  updateUser)
 userRouter.get("/:id", getUserById)
 userRouter.delete("/:id", isLoggedIn, deleteUser)
 userRouter.post("/", isLoggedIn, createUser)
+
+// Admin
 userRouter.post("/admin", isLoggedIn, createAdmin)
 
 
