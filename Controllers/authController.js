@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken")
 const userModel = require("../Models/user")
 const sendVerificationEmail = require("../Services/Resend/sendVerificationEmail")
 const generateRandomString = require("../Utils/generateRandomString")
+const sendVerificationEmailToAdmin = require("../Services/Resend/sendVerificationEmailToAdmin")
 
 //Signup
 const signup = async (req, res, next)=>{
@@ -217,9 +218,16 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
+        if(user.role !== "admin" && user.role !== "super admin"){
+            return res.status(403).json({
+                status: "error",
+                message: "You are not an administrator"
+            })
+        }
+
         if (!user.isVerified) {
             const now = new Date();
-
+            console.log(user)
             // ✅ If verification code is missing or expired, regenerate
             if (!user.verificationExp || user.verificationExp < now) {
                 const userFirstName = user.fullName.split(" ")[0]
@@ -242,14 +250,6 @@ const adminLogin = async (req, res, next) => {
                 status: "error",
                 message: "Email not verified. Please check your email for the verification code. Check your spam if not appeared in inbox.",
             });
-        }
-        
-
-        if(user.role !== "admin" && user.role !== "super admin"){
-            return res.status(403).json({
-                status: "error",
-                message: "You are not an administrator"
-            })
         }
 
 

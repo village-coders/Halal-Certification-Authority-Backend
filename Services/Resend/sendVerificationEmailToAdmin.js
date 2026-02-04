@@ -11,7 +11,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
     const verificationLink = `${process.env.ADMIN_DOMAIN}/admin/verify/${token}`;
 
     const data = await resend.emails.send({
-      from: "Halal & Haram Distinction Dev Initiative <onboarding@theyoungpioneers.com>",
+      from: "Halal & Haram Distinction and Development Initiative <onboarding@theyoungpioneers.com>",
       to: email,
       subject: "🔐 Verify Your Admin Email Address",
       html: `
@@ -22,7 +22,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
 
             <p>
               You have been registered as an <strong>Administrator</strong> for the
-              <strong>Halal and Haram Distinction Development Initiative</strong>.
+              <strong>Halal and Haram Distinction and Development Initiative</strong>.
             </p>
 
             <p>
@@ -45,7 +45,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;" />
 
             <p style="font-size: 14px; color: #6b7280;">
-              — Halal and Haram Distinction Development Initiative Team
+              — Halal and Haram Distinction and Development Initiative Team
             </p>
           </div>
         </div>

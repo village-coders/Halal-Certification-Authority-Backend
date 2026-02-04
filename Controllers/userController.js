@@ -205,6 +205,13 @@ const deleteUser = async (req, res, next)=>{
                 message: "user not found"
             })
         }
+        
+        if(req.user.isUnderCompany){
+            return res.status(400).json({
+                status: "error",
+                message: "UnAuthorized, Only the main user with company can delete user"
+            })
+        }
         if(user.id === req.user.id){
             return res.status(400).json({
                 status: "error",
@@ -224,7 +231,7 @@ const deleteUser = async (req, res, next)=>{
 
 const createAdmin = async (req, res, next)=>{
     // const file = req.file.path
-    const {fullName, email, password} = req.body
+    const {fullName, email, password, contact} = req.body
     // const id = req.user.id
     try {
         if(req.user.role !== "super admin"){
@@ -250,7 +257,7 @@ const createAdmin = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const admin = await userModel.create({ email, fullName, role: "admin", password: hashedPassword, isVerified: false, verificationToken: token, verificationExp})
+        const admin = await userModel.create({ email, fullName, role: "admin", contact, password: hashedPassword, isVerified: false, verificationToken: token, verificationExp})
         
         if(!admin){
             return res.status(404).json({
@@ -277,6 +284,7 @@ const createAdmin = async (req, res, next)=>{
 const getAllAdmin = async (req, res, next) => {
   try {
     
+    
     if (req.user.role !== "super admin") {
       return res.status(403).json({
         status: "error",
@@ -284,9 +292,15 @@ const getAllAdmin = async (req, res, next) => {
       });
     }
 
+    const ROLES = {
+        ADMIN : "admin",
+        SUPER_ADMIN : "super admin"
+    }
+
+
     const users = await userModel
       .find({
-        role: { $in: ["admin", "super admin"] }
+        role: { $in: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }
       })
       .select("-password -__v");
 
@@ -299,6 +313,7 @@ const getAllAdmin = async (req, res, next) => {
       users,
     });
   } catch (error) {
+    console.log(error)    
     next(error);
   }
 };

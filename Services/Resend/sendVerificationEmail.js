@@ -9,7 +9,7 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
     console.log("📤 Sending verification email to:", email);
 
     const data = await resend.emails.send({
-      from: "Halal and Haram Distinction Development Initiative <onboarding@theyoungpioneers.com>",
+      from: "Halal and Haram Distinction and Development Initiative <onboarding@theyoungpioneers.com>",
       to: email,
       subject: "✅ Verify Your Email for Halal and Haram Distinction Development Initiative",
       html: `
