@@ -24,10 +24,10 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  isMine: {
-    type: Boolean,
-    default: false
-  },
+  // isMine: {
+  //   type: Boolean,
+  //   default: false
+  // },
   read: {
     type: Boolean,
     default: false

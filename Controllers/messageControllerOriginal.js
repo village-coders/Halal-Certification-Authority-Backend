@@ -1,6 +1,5 @@
 const Message = require('../Models/message');
 const { supabase } = require('../Config/supabase'); // Your Supabase config
-const { getIo } = require('../Services/socketService');
 
 // Get all messages for current user (both sent and received)
 exports.getUserMessages = async (req, res) => {
@@ -11,31 +10,12 @@ exports.getUserMessages = async (req, res) => {
       $or: [
         { sender: userId },
         { receiver: userId },
-        { receiver: 'admin' }
+        { receiver: 'admin' } // Users can see messages sent to admin
       ]
     })
-    .populate('sender', 'fullName email profileImage companyName')
-    .sort({ createdAt: -1 })
-    .lean();
-
-    // Mark messages as read for user
-    await Message.updateMany(
-      { receiver: userId, read: false },
-      { read: true, readAt: new Date() }
-    );
-
-    // Emit read events for newly read messages
-    const unreadMessages = messages.filter(msg => 
-      !msg.read && msg.receiver.toString() === userId
-    );
+    .populate('sender', 'fullName email profileImage')
+    .sort({ createdAt: -1 });
     
-    if (unreadMessages.length > 0) {
-      const io = getIo();
-      unreadMessages.forEach(msg => {
-        io.to(msg.sender._id.toString()).emit('message-read', { messageId: msg._id });
-      });
-    }
-
     res.status(200).json({
       status: 'success',
       message: 'Messages fetched successfully',
@@ -49,7 +29,6 @@ exports.getUserMessages = async (req, res) => {
     });
   }
 };
-// Send a message
 
 // Send a message
 exports.sendMessage = async (req, res) => {
@@ -57,66 +36,66 @@ exports.sendMessage = async (req, res) => {
     const userId = req.user.id;
     const { content, receiver = 'admin' } = req.body;
     const files = req.files || [];
-
+    
+    // Validate message content
     if (!content?.trim() && files.length === 0) {
       return res.status(400).json({
         status: 'error',
         message: 'Message content or attachment is required'
       });
     }
-
-    // Upload files to Supabase
+    
+    // Upload files to Supabase if any
     const attachments = [];
     for (const file of files) {
       const fileName = `messages/${Date.now()}_${file.originalname}`;
+      
+      // Upload to Supabase
       const { data, error } = await supabase.storage
-        .from('message-attachments')
-        .upload(fileName, file.buffer, { 
-          contentType: file.mimetype, 
-          upsert: true 
+        .from('message-attachments') // Your Supabase bucket name
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true
         });
-
-      if (!error) {
-        const { data: urlData } = supabase.storage
-          .from('message-attachments')
-          .getPublicUrl(fileName);
-        attachments.push({ 
-          filename: file.originalname, 
-          url: urlData.publicUrl, 
-          fileType: file.mimetype, 
-          size: file.size 
-        });
+      
+      if (error) {
+        console.error('Supabase upload error:', error);
+        continue; // Skip this file but continue with others
       }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('message-attachments')
+        .getPublicUrl(fileName);
+      
+      attachments.push({
+        filename: file.originalname,
+        url: urlData.publicUrl,
+        fileType: file.mimetype,
+        size: file.size
+      });
     }
-
-    // Create message in database
-    const message = await Message.create({
+    
+    // Create message
+    const message = new Message({
       sender: userId,
       receiver,
       content: content?.trim() || '',
-      attachments,
-      read: false
+      attachments
     });
-
+    
+    await message.save();
+    
     // Populate sender info
     const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'fullName email profileImage companyName');
-
-    // Emit real-time event using Socket.IO
-    const io = getIo();
+      .populate('sender', 'fullName email profileImage');
     
-    // Emit to receiver's room
-    io.to(receiver).emit('new-message', populatedMessage);
-    
-    // Also emit to sender for immediate UI update
-    io.to(userId).emit('new-message', populatedMessage);
-
     res.status(201).json({
       status: 'success',
       message: 'Message sent successfully',
       data: populatedMessage
     });
-
+    
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({
@@ -126,50 +105,45 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-
 // Mark message as read
 exports.markAsRead = async (req, res) => {
   try {
     const { messageId } = req.params;
     const userId = req.user.id;
-
-    // Find and update the message
+    
+    // Find message where user is the receiver
     const message = await Message.findOne({
       _id: messageId,
       receiver: userId
     });
-
+    
     if (!message) {
-      return res.status(404).json({ 
-        status: 'error', 
-        message: 'Message not found' 
+      return res.status(404).json({
+        status: 'error',
+        message: 'Message not found or access denied'
       });
     }
-
+    
+    // Mark as read if not already read
     if (!message.read) {
       message.read = true;
       message.readAt = new Date();
       await message.save();
-
-      // Emit real-time read event
-      const io = getIo();
-      io.to(userId).emit('message-read', { messageId });
-      io.to(message.sender.toString()).emit('message-read', { messageId });
     }
-
-    res.status(200).json({ 
-      status: 'success', 
-      message: 'Message marked as read' 
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Message marked as read'
     });
+    
   } catch (error) {
     console.error('Error marking message as read:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Failed to mark message as read' 
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to mark message as read'
     });
   }
 };
-
 
 // Get unread message count
 exports.getUnreadCount = async (req, res) => {
@@ -284,91 +258,84 @@ exports.getAllMessages = async (req, res) => {
 // Admin: Send message to user
 exports.sendAdminMessage = async (req, res) => {
   try {
+    // Check if user is admin
     if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
-      return res.status(403).json({ 
-        status: 'error', 
-        message: 'Access denied. Admin only.' 
+      return res.status(403).json({
+        status: 'error',
+        message: 'Access denied. Admin only.'
       });
     }
-
+    
     const { content, receiver } = req.body;
     const files = req.files || [];
-
+    
     if (!receiver) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Receiver is required' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'Receiver is required'
       });
     }
-
+    
     if (!content?.trim() && files.length === 0) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'Message content or attachment is required' 
+      return res.status(400).json({
+        status: 'error',
+        message: 'Message content or attachment is required'
       });
     }
-
-    // Upload files
+    
+    // Upload files to Supabase if any
     const attachments = [];
     for (const file of files) {
       const fileName = `messages/${Date.now()}_${file.originalname}`;
+      
       const { data, error } = await supabase.storage
         .from('message-attachments')
-        .upload(fileName, file.buffer, { 
-          contentType: file.mimetype, 
-          upsert: true 
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true
         });
       
-      if (!error) {
-        const { data: urlData } = supabase.storage
-          .from('message-attachments')
-          .getPublicUrl(fileName);
-        attachments.push({ 
-          filename: file.originalname, 
-          url: urlData.publicUrl, 
-          fileType: file.mimetype, 
-          size: file.size 
-        });
+      if (error) {
+        console.error('Supabase upload error:', error);
+        continue;
       }
+      
+      const { data: urlData } = supabase.storage
+        .from('message-attachments')
+        .getPublicUrl(fileName);
+      
+      attachments.push({
+        filename: file.originalname,
+        url: urlData.publicUrl,
+        fileType: file.mimetype,
+        size: file.size
+      });
     }
-
-    // Create message
-    const message = await Message.create({
-      sender: req.user.id,
+    
+    // Create message from admin
+    const message = new Message({
+      sender: req.user.id, // Special identifier for admin
       receiver,
       content: content?.trim() || '',
-      attachments,
-      read: false
+      attachments
     });
-
-    // Populate sender info
-    const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'fullName email profileImage companyName');
-
-    // Emit real-time event
-    const io = getIo();
     
-    // Emit to receiver
-    io.to(receiver).emit('new-message', populatedMessage);
+    await message.save();
     
-    // Also emit to admin for immediate UI update
-    io.to(req.user.id).emit('new-message', populatedMessage);
-
     res.status(201).json({
       status: 'success',
       message: 'Message sent successfully',
-      data: populatedMessage
+      data: message
     });
-
+    
   } catch (error) {
     console.error('Error sending admin message:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Failed to send message' 
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to send message'
     });
   }
 };
-
 
 
 // Admin: Get all user conversations
