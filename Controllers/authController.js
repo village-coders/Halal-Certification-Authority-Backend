@@ -227,8 +227,9 @@ const adminLogin = async (req, res, next) => {
 
         if (!user.isVerified) {
             const now = new Date();
-            console.log(user)
+            // console.log(user)
             // ✅ If verification code is missing or expired, regenerate
+            console.log("EMAIL FN TYPE:", typeof sendVerificationEmailToAdmin);
             if (!user.verificationExp || user.verificationExp < now) {
                 const userFirstName = user.fullName.split(" ")[0]
                 const newCode = generateRandomString(8)
@@ -236,6 +237,7 @@ const adminLogin = async (req, res, next) => {
                 user.verificationToken = newCode;
                 user.verificationExp = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 mins
                 await user.save();
+
 
                 // ✅ Send the new code via email (mock or real)
                 await sendVerificationEmailToAdmin(user.email, userFirstName.toUpperCase(), newCode); // You implement this

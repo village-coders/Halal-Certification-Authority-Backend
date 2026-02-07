@@ -8,7 +8,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
   try {
     console.log("📤 Sending admin verification email to:", email);
 
-    const verificationLink = `${process.env.ADMIN_DOMAIN}/admin/verify/${token}`;
+    const verificationLink = `${process.env.ADMIN_DOMAIN}/verify/${token}`;
 
     const data = await resend.emails.send({
       from: "Halal & Haram Distinction and Development Initiative <onboarding@theyoungpioneers.com>",
@@ -55,7 +55,8 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
     console.log("📧 Admin verification email sent successfully!");
     console.log("Message ID:", data.id);
   } catch (error) {
-    console.error("❌ Failed to send admin verification email:", error);
+    console.error("❌ Failed to send admin verification email:");
+    console.error(error?.response || error);
   }
 };
 
