@@ -1,12 +1,13 @@
 const express = require("express")
 const userRouter = express.Router()
 
-const {getAllUsers, getUserById, updateUser, createUser, deleteUser, createAdmin, getAllAdmin} = require("../Controllers/userController")
+const {getAllUsers, getUserById, updateUser, createUser, deleteUser, createAdmin, getAllAdmin, deleteAdmin} = require("../Controllers/userController")
 const uploadAuthImage = require("../Config/authMulter")
 const isLoggedIn = require("../Middlewares/isLoggedIn")
 
 userRouter.get("/", getAllUsers)
 userRouter.get("/admin", isLoggedIn, getAllAdmin)
+userRouter.delete("/admin/:id", isLoggedIn, deleteAdmin)
 userRouter.put("/:id",  updateUser)
 userRouter.get("/:id", getUserById)
 userRouter.delete("/:id", isLoggedIn, deleteUser)

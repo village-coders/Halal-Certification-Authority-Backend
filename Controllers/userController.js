@@ -229,6 +229,43 @@ const deleteUser = async (req, res, next)=>{
     }
 }
 
+const deleteAdmin = async (req, res, next)=>{
+    const {id} = req.params
+    try{
+        // check if user exist
+        const user = await userModel.findById(id)
+        
+        if(!user){
+            return res.status(404).json({
+                status: "error",
+                message: "admin not found"
+            })
+        }
+
+        if(user.role === "super admin"){
+            return res.status(400).json({
+                status: "error",
+                message: "You cannot delete super admin"
+            })
+        }
+        
+        if(user.id === req.user.id){
+            return res.status(400).json({
+                status: "error",
+                message: "You cannot delete yourself"
+            })
+        }
+        await userModel.findByIdAndDelete(id)
+        res.status(200).json({
+            status: "success",
+            message: "admin has been deleted"
+        })
+    } catch(error) {
+        console.log(error);
+        next(error);
+    }
+}
+
 const createAdmin = async (req, res, next)=>{
     // const file = req.file.path
     const {fullName, email, password, contact} = req.body
@@ -328,5 +365,6 @@ module.exports = {
     updateUser,
     createUser,
     createAdmin,
-    getAllAdmin
+    getAllAdmin,
+    deleteAdmin
 }
