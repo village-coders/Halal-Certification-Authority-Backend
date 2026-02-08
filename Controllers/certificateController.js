@@ -1,3 +1,4 @@
+// Controllers/certificateController.js
 const Certificate = require('../Models/certificate');
 const applicationModel = require('../Models/application');
 const PDFDocument = require('pdfkit');
@@ -6,6 +7,8 @@ const path = require('path');
 const certificateModel = require('../Models/certificate');
 const userModel = require('../Models/user');
 const sendCertificateIssuedEmail = require('../Services/Resend/certificateIssuedEmail');
+const { Readable } = require('stream');
+const { getGridFSBucket } = require('../Config/connectToDb');
 
 // Get all certificates
 const getCertificates = async (req, res, next) => {
@@ -21,7 +24,6 @@ const getCertificates = async (req, res, next) => {
       .sort({ expiryDate: 1 })
       .populate('applicationId', 'applicationNumber category')
       .populate('product', 'name category status');
-
     
     res.json(certificates);
   } catch (error) {
@@ -40,9 +42,6 @@ const getCertificate = async (req, res, next) => {
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-
-    const company = await userModel.findOne({registrationNo: certificate.companyId})
-
     
     res.json(certificate);
   } catch (error) {
@@ -92,7 +91,7 @@ const generateCertificate = async (req, res, next) => {
     const certificate = new certificateModel({
         certificateNumber,
         certificateType: application.category,
-        standard: 'ISO 22000:2018', // Default standard, can be customized
+        standard: 'ISO 22000:2018',
         status: 'Active',
         product: application.productId,
         issueDate,
@@ -102,29 +101,37 @@ const generateCertificate = async (req, res, next) => {
         generatedBy: "Admin"
     });
     
-    
     const company = await userModel.findOne({registrationNo: application.companyId})
     if(!company){
       return res.status(404).json({message: "company not found"})
     }
-    // Generate PDF
     
     await certificate.save();
+    
+    // Generate PDF and save to GridFS
+    const pdfFileId = await generateCertificatePDF(certificate);
+    
+    // Update certificate with PDF file ID
+    certificate.pdfFileId = pdfFileId;
+    await certificate.save();
+    
     // Update application status
     application.status = 'Issued';
     await application.save();
     
-    await generateCertificatePDF(certificate);
     await sendCertificateIssuedEmail(company.email, company.companyName, application.applicationNumber, certificate.certificateNumber)
     
-    res.status(201).json(certificate);
+    res.status(201).json({
+      ...certificate.toObject(),
+      pdfDownloadUrl: `/api/certificates/download/${certificate._id}`
+    });
   } catch (error) {
     console.log(error)
     next(error)
   }
 };
 
-// Download certificate PDF
+// Download certificate PDF from GridFS
 const downloadCertificate = async (req, res, next) => {
   try {
     const certificate = await certificateModel.findById(req.params.id);
@@ -133,13 +140,27 @@ const downloadCertificate = async (req, res, next) => {
       return res.status(404).json({ message: 'Certificate not found' });
     }
     
-    const pdfPath = certificate.pdfPath || await generateCertificatePDF(certificate);
-    
-    if (!fs.existsSync(pdfPath)) {
-      throw new Error('Certificate PDF not found');
+    // Check if PDF exists in GridFS
+    if (!certificate.pdfFileId) {
+      return res.status(404).json({ message: 'Certificate PDF not found' });
     }
     
-    res.download(pdfPath, `${certificate.certificateNumber}.pdf`);
+    const bucket = getGridFSBucket();
+    const downloadStream = bucket.openDownloadStream(certificate.pdfFileId);
+    
+    // Set response headers
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${certificate.certificateNumber}.pdf"`,
+    });
+    
+    downloadStream.pipe(res);
+    
+    downloadStream.on('error', (error) => {
+      console.error('Download error:', error);
+      res.status(500).json({ message: 'Failed to download certificate' });
+    });
+    
   } catch (error) {
     console.log(error)
     next(error)
@@ -203,7 +224,7 @@ const renewCertificate = async (req, res, next) => {
 // Get expiring certificates
 const getExpiringCertificates = async (req, res, next) => {
   try {
-    const { companyId, days = 30 } = req.query;
+    const { companyId, days = 30, generatePDF = 'false' } = req.query;
     
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() + parseInt(days));
@@ -217,33 +238,147 @@ const getExpiringCertificates = async (req, res, next) => {
     
     const certificates = await certificateModel.find(filter)
       .sort({ expiryDate: 1 })
-      .populate('applicationId', 'applicationNumber');
+      .populate('applicationId', 'applicationNumber')
+      .populate('companyId', 'name')
+      .populate('product', 'name');
     
-    res.json(certificates);
+    // If PDF not requested, return data only
+    if (generatePDF === 'false') {
+      return res.json(certificates);
+    }
+    
+    // Generate and save PDF report to GridFS
+    const pdfFileId = await generateExpiringCertificatesPDF(certificates, parseInt(days));
+    
+    res.json({
+      certificates: certificates,
+      reportId: pdfFileId,
+      downloadUrl: `/api/certificates/reports/download/${pdfFileId}`,
+      message: 'Report generated successfully'
+    });
+    
   } catch (error) {
     console.log(error)
     next(error)
   }
 };
 
-// Helper function to generate PDF
+// NEW: Helper function to generate expiring certificates PDF report
+const generateExpiringCertificatesPDF = async (certificates, daysThreshold) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        compress: true
+      });
+      
+      const pdfChunks = [];
+      doc.on('data', chunk => pdfChunks.push(chunk));
+      
+      doc.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(pdfChunks);
+          const bucket = getGridFSBucket();
+          
+          const fileName = `expiring-certificates-${Date.now()}.pdf`;
+          const uploadStream = bucket.openUploadStream(fileName, {
+            contentType: 'application/pdf',
+            metadata: {
+              reportType: 'expiring_certificates',
+              daysThreshold: daysThreshold,
+              certificateCount: certificates.length,
+              generatedAt: new Date()
+            }
+          });
+          
+          const readableStream = new Readable();
+          readableStream.push(pdfBuffer);
+          readableStream.push(null);
+          
+          readableStream.pipe(uploadStream)
+            .on('error', reject)
+            .on('finish', () => {
+              resolve(uploadStream.id);
+            });
+            
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      // PDF Content
+      doc.fontSize(20).text('Expiring Certificates Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'center' });
+      doc.text(`Certificates expiring within ${daysThreshold} days: ${certificates.length}`, { align: 'center' });
+      doc.moveDown(2);
+      
+      certificates.forEach((cert, index) => {
+        const daysLeft = Math.ceil((cert.expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        
+        doc.fontSize(10)
+           .text(`${index + 1}. ${cert.certificateNumber}`)
+           .text(`   Product: ${cert.product?.name || 'N/A'}`)
+           .text(`   Company: ${cert.companyId?.name || 'N/A'}`)
+           .text(`   Expiry Date: ${cert.expiryDate.toLocaleDateString()}`)
+           .text(`   Days Remaining: ${daysLeft}`)
+           .moveDown();
+      });
+      
+      doc.end();
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// UPDATED: Helper function to generate certificate PDF and save to GridFS
 const generateCertificatePDF = async (certificate) => {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 50
+        margin: 50,
+        compress: true
       });
       
-      const uploadsDir = path.join(__dirname, '../uploads/certificates');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      const pdfChunks = [];
+      doc.on('data', chunk => pdfChunks.push(chunk));
       
-      const pdfPath = path.join(uploadsDir, `${certificate.certificateNumber}.pdf`);
-      const writeStream = fs.createWriteStream(pdfPath);
-      
-      doc.pipe(writeStream);
+      doc.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(pdfChunks);
+          const bucket = getGridFSBucket();
+          
+          const uploadStream = bucket.openUploadStream(
+            `${certificate.certificateNumber}.pdf`,
+            {
+              contentType: 'application/pdf',
+              metadata: {
+                certificateNumber: certificate.certificateNumber,
+                certificateId: certificate._id,
+                companyId: certificate.companyId,
+                generatedAt: new Date()
+              }
+            }
+          );
+          
+          const readableStream = new Readable();
+          readableStream.push(pdfBuffer);
+          readableStream.push(null);
+          
+          readableStream.pipe(uploadStream)
+            .on('error', reject)
+            .on('finish', () => {
+              resolve(uploadStream.id);
+            });
+            
+        } catch (error) {
+          reject(error);
+        }
+      });
       
       // Add certificate content
       doc.fontSize(28).text('CERTIFICATE OF COMPLIANCE', { align: 'center' });
@@ -271,18 +406,69 @@ const generateCertificatePDF = async (certificate) => {
       
       doc.end();
       
-      writeStream.on('finish', () => {
-        certificate.pdfPath = pdfPath;
-        certificate.save();
-        resolve(pdfPath);
-      });
-      
-      writeStream.on('error', reject);
     } catch (error) {
       reject(error);
     }
   });
 };
+
+// NEW: Download report from GridFS
+const downloadCertificateReport = async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    const bucket = getGridFSBucket();
+    
+    // Find file metadata
+    const files = await bucket.find({ _id: fileId }).toArray();
+    if (files.length === 0) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+    
+    const file = files[0];
+    const downloadStream = bucket.openDownloadStream(fileId);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${file.filename}"`,
+    });
+    
+    downloadStream.pipe(res);
+    
+    downloadStream.on('error', (error) => {
+      console.error('Download error:', error);
+      res.status(500).json({ message: 'Failed to download report' });
+    });
+    
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+// NEW: Cleanup old PDFs (optional maintenance)
+const cleanupOldPDFs = async (daysOld = 90) => {
+  try {
+    const bucket = getGridFSBucket();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    
+    const oldFiles = await bucket.find({
+      'metadata.generatedAt': { $lt: cutoffDate }
+    }).toArray();
+    
+    for (const file of oldFiles) {
+      await bucket.delete(file._id);
+      console.log(`Cleaned up old PDF: ${file.filename}`);
+    }
+    
+    console.log(`Cleaned up ${oldFiles.length} old PDF files`);
+  } catch (error) {
+    console.error('Cleanup error:', error);
+  }
+};
+
+// Run cleanup periodically (optional)
+// setInterval(() => cleanupOldPDFs(), 7 * 24 * 60 * 60 * 1000); // Weekly
 
 module.exports = {
   getCertificates,
@@ -290,5 +476,7 @@ module.exports = {
   generateCertificate,
   downloadCertificate,
   renewCertificate,
-  getExpiringCertificates
+  getExpiringCertificates,
+  downloadCertificateReport,
+  cleanupOldPDFs
 };

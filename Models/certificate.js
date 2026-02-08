@@ -64,6 +64,11 @@ const certificateSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+    // NEW: Store GridFS file ID instead of local path
+  pdfFileId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'certificatePDFs.files' // Reference to GridFS collection
+  },
   generatedBy: {
     type: String,
     default: 'System'

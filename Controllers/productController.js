@@ -90,7 +90,7 @@ const getAllProducts = async (req, res, next) =>{
             build.status = query.status
         }
 
-        const products = await productModel.find(build)
+        const products = await productModel.find(build).sort({createdAt: -1})
         if(!products){
             return res.status(404).json({
                 status: "error",

@@ -21,10 +21,10 @@ const getAllUsers = async (req, res, next) => {
             filter.role = "company";
         }
 
-        filter.isUnderCompany = false
+        // filter.isUnderCompany = true
 
         if(query.isUnderCompany){
-            filter.isUnderCompany = true
+            filter.isUnderCompany = query.isUnderCompany
         }
 
         // You might also want to exclude sensitive fields

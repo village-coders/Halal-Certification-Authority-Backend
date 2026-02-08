@@ -63,9 +63,11 @@ const createApplication = async (req, res) => {
       }
     }
 
+    
+
     // Generate application number
     const timestamp = Date.now().toString().slice(-8);
-    const prefix = company.companyName.slice(0, 2).toUpperCase();
+    const prefix = company.companyName?.slice(0, 2).toUpperCase();
     
     // Use different prefix for renewals
     let applicationNumber;
