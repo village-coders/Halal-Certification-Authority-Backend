@@ -1,0 +1,31 @@
+0000000000000000000000000000000000000000 b73db17b21278dfd157d5b78fbb7f56d23d630a8 Saminu Awwal <awwalsaminu9@gmail.com> 1783535471 +0100	commit (initial): force push
+b73db17b21278dfd157d5b78fbb7f56d23d630a8 0000000000000000000000000000000000000000 Saminu Awwal <awwalsaminu9@gmail.com> 1783535950 +0100	Branch: renamed refs/heads/master to refs/heads/main
+0000000000000000000000000000000000000000 b73db17b21278dfd157d5b78fbb7f56d23d630a8 Saminu Awwal <awwalsaminu9@gmail.com> 1783535950 +0100	Branch: renamed refs/heads/master to refs/heads/main
+b73db17b21278dfd157d5b78fbb7f56d23d630a8 75a3e32754f069053a262e0a29ee8186a1e5a687 Saminu Awwal <awwalsaminu9@gmail.com> 1783539034 +0100	commit: fix: update process step statuses
+75a3e32754f069053a262e0a29ee8186a1e5a687 fb97570c4688fe8e29bc76ce49ab6261047302f6 Saminu Awwal <awwalsaminu9@gmail.com> 1783541172 +0100	commit: fix status enum issue
+fb97570c4688fe8e29bc76ce49ab6261047302f6 fb777167b64dd41012d442823e8ae5f015ceb978 Saminu Awwal <awwalsaminu9@gmail.com> 1783542061 +0100	commit: fix: change ncCorrectionFile to [String] array in audit model and add Audit Session status enum to application model
+fb777167b64dd41012d442823e8ae5f015ceb978 0132b03e9eae63ade416fae4f91f92b8246d9684 Saminu Awwal <awwalsaminu9@gmail.com> 1783543092 +0100	commit: new changes
+0132b03e9eae63ade416fae4f91f92b8246d9684 1d555f497fa5a58b335d1398c84202b069a32401 Saminu Awwal <awwalsaminu9@gmail.com> 1783543272 +0100	commit: feat: add NC Closed and Audit Report Submitted statuses, merge sub-step 7 into 6
+1d555f497fa5a58b335d1398c84202b069a32401 8fa2fdcd3a57083b7b53004a5a11eda454a70bb9 Saminu Awwal <awwalsaminu9@gmail.com> 1783543685 +0100	commit: fix: add status to application audit schema so client responses appear
+8fa2fdcd3a57083b7b53004a5a11eda454a70bb9 4c75df6da68ff1d4889fd7d11ad4d8286975c693 Saminu Awwal <awwalsaminu9@gmail.com> 1783543768 +0100	commit: fix: set application and audit statuses to Audited upon completion
+4c75df6da68ff1d4889fd7d11ad4d8286975c693 e614fbda40cc14bc530ccdb649437679aacfcb28 Saminu Awwal <awwalsaminu9@gmail.com> 1783594908 +0100	commit: added Invoice Sent enu
+e614fbda40cc14bc530ccdb649437679aacfcb28 592ea6add88adb96b66a2f1a523e841a3c74a031 Saminu Awwal <awwalsaminu9@gmail.com> 1783595174 +0100	commit: sdklfjkdflkdd
+592ea6add88adb96b66a2f1a523e841a3c74a031 2693e2b456464100ada8ee7b6b22e7e9197c9035 Saminu Awwal <awwalsaminu9@gmail.com> 1783595984 +0100	commit: i changed normal auditor to audit trainee
+2693e2b456464100ada8ee7b6b22e7e9197c9035 7b28af6e18a6c6ede01b36983525be7bafb67864 Saminu Awwal <awwalsaminu9@gmail.com> 1783596403 +0100	commit: jsdkl
+7b28af6e18a6c6ede01b36983525be7bafb67864 5ba7da3cccef9256b686991bc9d10eb689f457da Saminu Awwal <awwalsaminu9@gmail.com> 1783598551 +0100	commit: fix nc correction upload
+5ba7da3cccef9256b686991bc9d10eb689f457da 2d6aca0f5561891709625866be8d5699f3a0dc32 Saminu Awwal <awwalsaminu9@gmail.com> 1783606939 +0100	commit: Added seed.js file
+2d6aca0f5561891709625866be8d5699f3a0dc32 57627072d519a34439364712798436e684ee6a44 Saminu Awwal <awwalsaminu9@gmail.com> 1783609685 +0100	commit: Rename organization to HDI
+57627072d519a34439364712798436e684ee6a44 447734e6a7edf8464dfdc8553375ac412ce8bf0a Saminu Awwal <awwalsaminu9@gmail.com> 1783610681 +0100	commit: Update seed data and model to include Sharia and Processing timestamps
+447734e6a7edf8464dfdc8553375ac412ce8bf0a 31e76eae1df96a34e8a8f532a0750579de59c381 Saminu Awwal <awwalsaminu9@gmail.com> 1783611095 +0100	commit: Fix invalid product status in seed file
+31e76eae1df96a34e8a8f532a0750579de59c381 1bdb6cca81e80cf77b88b712242a0b52ada83590 Saminu Awwal <awwalsaminu9@gmail.com> 1783640590 +0100	commit: feat: Complete support ticket system - backend model/controller/routes + client UI rewrite
+1bdb6cca81e80cf77b88b712242a0b52ada83590 0b46cf55abc5e50777e7c34d3d838e28bfa5c05e Saminu Awwal <awwalsaminu9@gmail.com> 1783681692 +0100	commit: fix: Admin socket real-time sync, GridFS ticket uploads, and ticket email notifications
+0b46cf55abc5e50777e7c34d3d838e28bfa5c05e ae5925ab05d516b6e627700ca5f7498559de07b0 Saminu Awwal <awwalsaminu9@gmail.com> 1783684720 +0100	commit: deleted seed.js
+ae5925ab05d516b6e627700ca5f7498559de07b0 2d8cdefc02c6988641d2cf8a4a2f0ad813fdd6e6 Saminu Awwal <awwalsaminu9@gmail.com> 1783685745 +0100	commit: feat: Typed sidebar notifications - per-page red dot badges for Applications, Invoices, Certificates, Audits, Messages
+2d8cdefc02c6988641d2cf8a4a2f0ad813fdd6e6 f0b36c3c1e8a45b09cd5b42ab2e94b4b9f1f0276 Saminu Awwal <awwalsaminu9@gmail.com> 1783687757 +0100	commit: feat: Delete old products on renewal application submission
+f0b36c3c1e8a45b09cd5b42ab2e94b4b9f1f0276 29b5390c2db2328732fe2ff04aef82d3be12020f Saminu Awwal <awwalsaminu9@gmail.com> 1783694891 +0100	commit: added technical auditor
+29b5390c2db2328732fe2ff04aef82d3be12020f d59b72ce867eeb90c05214121b849f02deaeb18a Saminu Awwal <awwalsaminu9@gmail.com> 1783699056 +0100	commit: feat: mark expired certificates as Inactive on renewal
+d59b72ce867eeb90c05214121b849f02deaeb18a a44a4f1e989985c337effc9f6d2453fcb8aff47f Saminu Awwal <awwalsaminu9@gmail.com> 1783700302 +0100	commit: fix: allow production admin domains in CORS configuration
+a44a4f1e989985c337effc9f6d2453fcb8aff47f fa8845fe4e1c14a43ff75bf5ce729f2d19749324 Saminu Awwal <awwalsaminu9@gmail.com> 1783701155 +0100	commit: fix: add OPTIONS pre-flight handler and explicit allowed methods/headers for CORS
+fa8845fe4e1c14a43ff75bf5ce729f2d19749324 afc269ed29e4c8d39a8aeec258bc63cc98b5aa6f Saminu Awwal <awwalsaminu9@gmail.com> 1783702115 +0100	commit: fix: replace wildcard string route with regex to fix path-to-regexp v8 crash
+afc269ed29e4c8d39a8aeec258bc63cc98b5aa6f 814c15953760aa56aa75661006cd6d19e089013b Saminu Awwal <awwalsaminu9@gmail.com> 1783702786 +0100	commit: slkjf
+814c15953760aa56aa75661006cd6d19e089013b b13a68b3b66e5763b45870314892f2fadf310c30 Saminu Awwal <awwalsaminu9@gmail.com> 1783703926 +0100	commit: Fix path-to-regexp crash on startup

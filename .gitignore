@@ -1,0 +1,7 @@
+/node_modules
+.env
+/Certificates
+/HALAL AND CERT
+
+seed.js
+createApplication.js
