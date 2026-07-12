@@ -52,7 +52,8 @@ const productionDomains = [
   'https://hdiportal.com',
   'https://www.hdiportal.com',
   'https://admin.hdiportal.com',
-  'https://www.admin.hdiportal.com'
+  'https://www.admin.hdiportal.com',
+  'https://hdiinvoice.vercel.app'
 ];
 
 productionDomains.forEach(domain => {
