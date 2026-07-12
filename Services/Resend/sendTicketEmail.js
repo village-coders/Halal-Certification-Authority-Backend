@@ -1,9 +1,13 @@
-const transporter = require("./transporter");
+const { Resend } = require("resend");
+const dotenv = require("dotenv");
+dotenv.config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendNewTicketAdminEmail = async (adminEmail, ticket, userName) => {
     try {
-        const mailOptions = {
-            from: process.env.Nodemailer_User,
+        const data = await resend.emails.send({
+            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
             to: adminEmail,
             subject: `New Support Ticket: ${ticket.ticketNumber} - ${ticket.title}`,
             html: `
@@ -28,11 +32,10 @@ const sendNewTicketAdminEmail = async (adminEmail, ticket, userName) => {
                     </p>
                 </div>
             `,
-        };
+        });
 
-        const info = await transporter.sendMail(mailOptions);
         console.log("New Ticket Admin Email sent successfully");
-        return info;
+        return data;
     } catch (error) {
         console.error("Error sending new ticket admin email: ", error);
     }
@@ -40,8 +43,8 @@ const sendNewTicketAdminEmail = async (adminEmail, ticket, userName) => {
 
 const sendTicketReplyEmail = async (recipientEmail, recipientName, ticket, replyContent, senderName) => {
     try {
-        const mailOptions = {
-            from: process.env.Nodemailer_User,
+        const data = await resend.emails.send({
+            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
             to: recipientEmail,
             subject: `New Reply to Ticket: ${ticket.ticketNumber}`,
             html: `
@@ -65,11 +68,10 @@ const sendTicketReplyEmail = async (recipientEmail, recipientName, ticket, reply
                     </p>
                 </div>
             `,
-        };
+        });
 
-        const info = await transporter.sendMail(mailOptions);
         console.log("Ticket Reply Email sent successfully");
-        return info;
+        return data;
     } catch (error) {
         console.error("Error sending ticket reply email: ", error);
     }

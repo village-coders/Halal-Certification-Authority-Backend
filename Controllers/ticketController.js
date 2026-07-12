@@ -3,7 +3,7 @@ const notificationModel = require('../Models/notification');
 const User = require('../Models/user');
 const { getIo } = require('../Services/socketService');
 const { uploadToHybridStorage, uploadToGridFS } = require('../Utils/fileUpload');
-const { sendNewTicketAdminEmail, sendTicketReplyEmail } = require('../Services/Nodemailer/sendTicketEmail');
+const { sendNewTicketAdminEmail, sendTicketReplyEmail } = require('../Services/Resend/sendTicketEmail');
 
 // ─────────────────────────────────────────────
 // USER: Create a new support ticket

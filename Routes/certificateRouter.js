@@ -7,7 +7,8 @@ const {
   downloadCertificate,
   renewCertificate,
   getExpiringCertificates,
-  downloadCertificateReport
+  downloadCertificateReport,
+  sendRenewalReminder
 } = require('../Controllers/certificateController');
 const isLoggedIn = require('../Middlewares/isLoggedIn');
 const isAdmin = require('../Middlewares/isAdmin');
@@ -23,6 +24,9 @@ certificateRouter.get('/:id/download', isLoggedIn, downloadCertificate);
 
 // POST renew certificate
 certificateRouter.post('/renew/:id', isAdmin, renewCertificate);
+
+// POST send renewal reminder
+certificateRouter.post('/:id/remind', isAdmin, sendRenewalReminder);
 
 // GET expiring certificates
 certificateRouter.get('/expiring/soon', getExpiringCertificates);

@@ -8,6 +8,7 @@ const path = require('path');
 const certificateModel = require('../Models/certificate');
 const userModel = require('../Models/user');
 const sendCertificateIssuedEmail = require('../Services/Resend/certificateIssuedEmail');
+const { sendRenewalReminderEmail } = require('../Services/Resend/sendRenewalReminderEmail');
 const { Readable } = require('stream');
 const { getGridFSBucket } = require('../Config/connectToDb');
 
@@ -573,7 +574,45 @@ const cleanupOldPDFs = async (daysOld = 90) => {
 };
 
 // Run cleanup periodically (optional)
+// Run cleanup periodically (optional)
 // setInterval(() => cleanupOldPDFs(), 7 * 24 * 60 * 60 * 1000); // Weekly
+
+// Send renewal reminder
+const sendRenewalReminder = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const certificate = await certificateModel.findById(id).populate('companyId');
+        
+        if (!certificate) {
+            return res.status(404).json({ message: 'Certificate not found' });
+        }
+
+        if (certificate.status !== 'Expired' && certificate.status !== 'Expiring Soon') {
+            return res.status(400).json({ message: 'Reminder can only be sent for expired or expiring soon certificates' });
+        }
+
+        const company = await userModel.findOne({ registrationNo: certificate.companyId });
+        if (!company) {
+             return res.status(404).json({ message: 'Company details not found for this certificate' });
+        }
+
+        const isExpired = certificate.status === 'Expired';
+        
+        await sendRenewalReminderEmail(
+            company.email,
+            company.companyName || company.fullName,
+            certificate.certificateNumber,
+            certificate.expiryDate,
+            isExpired
+        );
+
+        res.status(200).json({ message: 'Reminder email sent successfully' });
+
+    } catch (error) {
+        console.log(error);
+        next(error);
+    }
+};
 
 module.exports = {
   getCertificates,
@@ -584,5 +623,6 @@ module.exports = {
   getExpiringCertificates,
   downloadCertificateReport,
   cleanupOldPDFs,
-  checkAndStatusSync
+  checkAndStatusSync,
+  sendRenewalReminder
 };
