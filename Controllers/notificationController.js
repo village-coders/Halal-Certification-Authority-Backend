@@ -106,6 +106,19 @@ const clearAllUserNotifications = async (req, res) => {
     }
 };
 
+const dismissModalNotifications = async (req, res) => {
+    try {
+        await notificationModel.updateMany(
+            { forAdmin: false, companyId: req.user.id, showAsModal: true },
+            { $set: { showAsModal: false } }
+        );
+        res.status(200).json({ success: true, message: 'Modal notifications dismissed' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 module.exports = {
     getNotifications,
     markAsRead,
@@ -115,5 +128,6 @@ module.exports = {
     markUserAsRead,
     markReadByType,
     clearUserNotification,
-    clearAllUserNotifications
+    clearAllUserNotifications,
+    dismissModalNotifications
 };

@@ -11,7 +11,8 @@ const signup = async (req, res, next) => {
     const { password, email, companyName, fullName, } = req.body
     // const file = req.file.path
     try {
-        const existingUser = await userModel.findOne({ email: email.toLowerCase() });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const existingUser = await userModel.findOne({ email: formattedEmail });
         if (existingUser) {
             return res.status(400).json({
                 status: "error",
@@ -25,13 +26,13 @@ const signup = async (req, res, next) => {
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const currentYear =  new Date().getFullYear()
+        const currentYear = new Date().getFullYear()
         const companyCount = await userModel.countDocuments({ role: "company", isUnderCompany: false })
         const formattedCount = String(companyCount + 1).padStart(4, '0');
         const uniqueId = `${formattedCount}-${currentYear}`;
         const regNo = `HDI-${uniqueId}`;
 
-        const user = await userModel.create({ ...req.body, email: email.toLowerCase(), password: hashedPassword, verificationToken: token, verificationExp, registrationNo: regNo })
+        const user = await userModel.create({ ...req.body, email: formattedEmail, password: hashedPassword, verificationToken: token, verificationExp, registrationNo: regNo })
 
         if (!user) {
             return res.status(404).json({
@@ -109,7 +110,8 @@ const login = async (req, res, next) => {
             });
         }
 
-        const user = await userModel.findOne({ email: email.toLowerCase() });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const user = await userModel.findOne({ email: formattedEmail });
         if (!user || !user.password) {
             return res.status(401).json({
                 status: "error",
@@ -198,7 +200,8 @@ const adminLogin = async (req, res, next) => {
             });
         }
 
-        const user = await userModel.findOne({ email });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const user = await userModel.findOne({ email: formattedEmail });
         if (!user || !user.password) {
             return res.status(401).json({
                 status: "error",
@@ -314,7 +317,8 @@ const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     try {
-        const user = await userModel.findOne({ email });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const user = await userModel.findOne({ email: formattedEmail });
         if (!user) {
             return res.status(404).json({
                 status: "error",
@@ -375,6 +379,60 @@ const resetPassword = async (req, res, next) => {
     }
 };
 
+const impersonateClient = async (req, res, next) => {
+    const { clientId } = req.body;
+    const adminUserId = req.user.id;
+
+    try {
+        const adminUser = await userModel.findById(adminUserId);
+        if (!adminUser) {
+            return res.status(404).json({ status: "error", message: "Admin user not found" });
+        }
+
+        // Only allow if user is admin, super admin, or has isBuilder: true
+        const allowed = adminUser.role === 'super admin' || adminUser.isBuilder === true;
+        if (!allowed) {
+            return res.status(403).json({ status: "error", message: "Unauthorized to impersonate clients" });
+        }
+
+        const clientUser = await userModel.findById(clientId);
+        if (!clientUser) {
+            return res.status(404).json({ status: "error", message: "Client company not found" });
+        }
+
+        if (clientUser.role !== 'company') {
+            return res.status(400).json({ status: "error", message: "Cannot impersonate non-client users" });
+        }
+
+        // Generate JWT token for the client user
+        const accessToken = jwt.sign(
+            { id: clientUser._id, name: clientUser.fullName, email: clientUser.email, role: clientUser.role, registrationNo: clientUser.registrationNo },
+            process.env.jwt_secret,
+            { expiresIn: process.env.jwt_exp }
+        );
+
+        const userData = {
+            _id: clientUser._id,
+            name: clientUser.fullName,
+            email: clientUser.email,
+            isVerified: clientUser.isVerified,
+            role: clientUser.role,
+            image: clientUser.authImage
+        };
+
+        res.status(200).json({
+            status: "success",
+            message: `Successfully authenticated as ${clientUser.companyName || clientUser.fullName}`,
+            accessToken,
+            isVerified: clientUser.isVerified,
+            user: userData
+        });
+
+    } catch (error) {
+        console.error("Impersonate error:", error);
+        next(error);
+    }
+};
 
 module.exports = {
     verifyEmail,
@@ -383,5 +441,6 @@ module.exports = {
     updateUserPassword,
     adminLogin,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    impersonateClient
 }

@@ -67,6 +67,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isBuilder: {
+    type: Boolean,
+    default: false
+  },
   isUnderCompany: {
     type: Boolean,
     default: false

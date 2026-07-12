@@ -64,7 +64,8 @@ const adminCreateInvoice = async (req, res) => {
                 message: `A new invoice (${invoiceNumber}) has been issued for you. Please log in to view and pay.`,
                 forAdmin: false,
                 type: 'invoice',
-                companyId: userId
+                companyId: userId,
+                showAsModal: true
             });
             await notification.save();
         } catch (notifErr) {

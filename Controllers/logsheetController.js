@@ -14,11 +14,6 @@ const createLogsheet = async (req, res) => {
         const application = await applicationModel.findById(applicationId);
         if (!application) return res.status(404).json({ message: 'Application not found' });
 
-        // Check if logsheet already exists
-        const existingLogsheet = await logsheetModel.findOne({ applicationId });
-        if (existingLogsheet) {
-            return res.status(400).json({ message: 'Logsheet already exists for this application' });
-        }
 
         let auditReportUrl = auditReport; // Fallback if no file
         let labResultUrl = null;
@@ -96,14 +91,32 @@ const createLogsheet = async (req, res) => {
             }
         }
 
-        const logsheet = new logsheetModel({
-            applicationId,
-            companyName,
-            companyEmail,
-            auditReport: auditReportUrl,
-            labResult: labResultUrl,
-            additionalDocuments: additionalDocumentUrls
-        });
+        let logsheet;
+        const existingLogsheet = await logsheetModel.findOne({ applicationId });
+        if (existingLogsheet && existingLogsheet.status !== 'Rejected') {
+            return res.status(400).json({ message: 'Logsheet already exists for this application' });
+        } else if (existingLogsheet && existingLogsheet.status === 'Rejected') {
+            logsheet = existingLogsheet;
+            logsheet.companyName = companyName;
+            logsheet.companyEmail = companyEmail;
+            logsheet.auditReport = auditReportUrl;
+            logsheet.labResult = labResultUrl;
+            logsheet.additionalDocuments = additionalDocumentUrls;
+            logsheet.status = 'Pending';
+            logsheet.signatures = [];
+            logsheet.isFinalized = false;
+            logsheet.rejectionReason = undefined;
+            logsheet.updatedAt = new Date();
+        } else {
+            logsheet = new logsheetModel({
+                applicationId,
+                companyName,
+                companyEmail,
+                auditReport: auditReportUrl,
+                labResult: labResultUrl,
+                additionalDocuments: additionalDocumentUrls
+            });
+        }
 
         await logsheet.save();
 
@@ -113,6 +126,7 @@ const createLogsheet = async (req, res) => {
             updatedApplication.status = "With Shari'a Board";
             if (!updatedApplication.processData) updatedApplication.processData = {};
             updatedApplication.processData.shariaBoardSentAt = new Date();
+            updatedApplication.processData.shariaLogsheetRejectReason = undefined; // Clear previous rejection reason
             // Advance processStep to 8 (Sharia Board Review)
             updatedApplication.processStep = Math.max(updatedApplication.processStep || 0, 8);
             await updatedApplication.save();
@@ -229,9 +243,81 @@ const signLogsheet = async (req, res) => {
     }
 };
 
+// Reject Logsheet (Shari'a Board)
+const rejectLogsheet = async (req, res) => {
+    const { logsheetId, reason } = req.body;
+
+    try {
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ message: 'Rejection reason is required' });
+        }
+
+        const logsheet = await logsheetModel.findById(logsheetId);
+        if (!logsheet) return res.status(404).json({ message: 'Logsheet not found' });
+
+        if (logsheet.isFinalized) {
+            return res.status(400).json({ message: 'Logsheet is already finalized and approved' });
+        }
+
+        // Check if user has permission (Shari'a Board or super admin or admin)
+        const isSharia = req.user.role === 'super admin' || req.user.role === 'admin' || (req.user.privileges && req.user.privileges.includes("Shari'a Board"));
+        if (!isSharia) {
+            return res.status(403).json({ message: 'Unauthorized. Only Shari\'a Board members or Administrators can reject logsheets.' });
+        }
+
+        // Update logsheet status to Rejected
+        logsheet.status = 'Rejected';
+        logsheet.rejectionReason = reason;
+        logsheet.signatures = [];
+        logsheet.isFinalized = false;
+        await logsheet.save();
+
+        // Update application
+        const application = await applicationModel.findById(logsheet.applicationId);
+        if (application) {
+            application.status = "Logsheet Rejected";
+            application.processStep = 7; // Send back to step 7 so auditor can recreate
+            if (!application.processData) application.processData = {};
+            application.processData.shariaBoardSentAt = undefined; // Clear sent timestamp so Create Logsheet button shows up
+            application.processData.shariaLogsheetRejectReason = reason; // Store reason
+            await application.save();
+
+            // Create notification for auditors/admins
+            try {
+                const auditors = await userModel.find({
+                    $or: [
+                        { role: { $in: ['admin', 'super admin'] } },
+                        { privileges: { $in: ['Audit Manager', 'Auditor'] } }
+                    ],
+                    isActive: true
+                });
+
+                for (const aud of auditors) {
+                    const notification = new notificationModel({
+                        title: 'Logsheet Rejected by Shari\'a Board',
+                        message: `The logsheet for application ${application.applicationNumber} was rejected by ${req.user.fullName}. Reason: ${reason}`,
+                        forAdmin: true,
+                        type: 'application',
+                        companyId: aud._id,
+                        showAsModal: false
+                    });
+                    await notification.save();
+                }
+            } catch (err) {
+                console.error('Failed to notify auditors of logsheet rejection:', err);
+            }
+        }
+
+        res.json({ status: 'success', message: 'Logsheet successfully rejected and sent back to auditor', logsheet });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createLogsheet,
     getLogsheets,
     getLogsheet,
-    signLogsheet
+    signLogsheet,
+    rejectLogsheet
 };

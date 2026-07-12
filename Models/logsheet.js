@@ -43,6 +43,9 @@ const logsheetSchema = new mongoose.Schema({
     enum: ['Pending', 'Approved', 'Rejected'],
     default: 'Pending'
   },
+  rejectionReason: {
+    type: String
+  },
   isFinalized: {
     type: Boolean,
     default: false

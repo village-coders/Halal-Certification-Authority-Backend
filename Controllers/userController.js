@@ -91,8 +91,11 @@ const getUserById = async (req, res, next) => {
             role: findUser.role,
             status: findUser.status, // Add status field if it exists
             isVerified: findUser.isVerified,
+            isBuilder: findUser.isBuilder,
             privileges: findUser.privileges,
             signatureImage: findUser.signatureImage,
+            signatureName: findUser.signatureName,
+            signatureTitle: findUser.signatureTitle,
             createdAt: findUser.createdAt,
             updatedAt: findUser.updatedAt
         };
@@ -123,7 +126,8 @@ const createUser = async (req, res, next)=>{
         //         message: "Image upload failed or missing",
         //     });
         // }
-        const existingUser = await userModel.findOne({ email: email.toLowerCase() });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const existingUser = await userModel.findOne({ email: formattedEmail });
         if (existingUser) {
             return res.status(400).json({
                 status: "error",
@@ -137,7 +141,7 @@ const createUser = async (req, res, next)=>{
         const token = generateRandomString(8)
         const verificationExp = Date.now() + 300000
 
-        const user = await userModel.create({...company, email: email.toLowerCase(), fullName, department, password: hashedPassword, registrationNo: company.registrationNo, isUnderCompany: true, companyName: company.companyName, verificationToken: token, verificationExp})
+        const user = await userModel.create({...company, email: formattedEmail, fullName, department, password: hashedPassword, registrationNo: company.registrationNo, isUnderCompany: true, companyName: company.companyName, verificationToken: token, verificationExp})
         
         if(!user){
             return res.status(404).json({
@@ -329,7 +333,8 @@ const createAdmin = async (req, res, next)=>{
         }
         // const company = await userModel.findById(id)
 
-        const existingUser = await userModel.findOne({ email: email.toLowerCase() });
+        const formattedEmail = email ? email.trim().toLowerCase() : "";
+        const existingUser = await userModel.findOne({ email: formattedEmail });
 
         if (existingUser) {
             return res.status(400).json({
@@ -345,7 +350,7 @@ const createAdmin = async (req, res, next)=>{
         const verificationExp = Date.now() + 300000
 
         const { privileges } = req.body
-        const admin = await userModel.create({ email: email.toLowerCase(), fullName, role: "admin", contact, password: hashedPassword, isVerified: false, verificationToken: token, verificationExp, privileges})
+        const admin = await userModel.create({ email: formattedEmail, fullName, role: "admin", contact, password: hashedPassword, isVerified: false, verificationToken: token, verificationExp, privileges})
         
         if(!admin){
             return res.status(404).json({

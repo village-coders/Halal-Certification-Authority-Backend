@@ -1,6 +1,6 @@
 const express = require("express")
 const authRouter = express.Router()
-const { signup, login, verifyEmail, updateUserPassword, adminLogin, forgotPassword, resetPassword } = require("../Controllers/authController")
+const { signup, login, verifyEmail, updateUserPassword, adminLogin, forgotPassword, resetPassword, impersonateClient } = require("../Controllers/authController")
 const uploadAuthImage = require("../Config/authMulter")
 const isVerified = require("../Middlewares/isVerified")
 const isLoggedIn = require("../Middlewares/isLoggedIn")
@@ -12,5 +12,6 @@ authRouter.post("/verify/:token", verifyEmail)
 authRouter.post("/forgot-password", forgotPassword)
 authRouter.post("/reset-password/:token", resetPassword)
 authRouter.put("/update-password/:id", isLoggedIn, updateUserPassword)
+authRouter.post("/impersonate", isLoggedIn, impersonateClient)
 
 module.exports = authRouter 
