@@ -220,16 +220,10 @@ const uploadProofOfPayment = async (req, res) => {
         const proofUrl = invoice.proofOfPayment;
         const companyName = invoice.userId?.companyName || invoice.userId?.fullName || 'Client';
         
-        // Fetch super admins, and admins with Accountant or Application Officer privileges
+        // Fetch ALL admins and super admins
         try {
             const notifyAdmins = await userModel.find({
-                $or: [
-                    { role: 'super admin' },
-                    { 
-                        role: 'admin', 
-                        privileges: { $in: ['Accountant', 'Application Officer'] } 
-                    }
-                ]
+                role: { $in: ['admin', 'super admin'] }
             }).select('email');
             const adminEmails = notifyAdmins.map(admin => admin.email).filter(Boolean);
             

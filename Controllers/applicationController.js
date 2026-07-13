@@ -8,6 +8,7 @@ const productModel = require('../Models/product');
 const { checkAndStatusSync } = require('./certificateController');
 const sendAuditScheduledEmail = require('../Services/Resend/auditScheduledEmail');
 const sendTrackingUpdateEmail = require('../Services/Resend/trackingUpdateEmail');
+const newApplicationEmail = require('../Services/Resend/newApplicationEmail');
 
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
@@ -298,11 +299,30 @@ const createApplication = async (req, res) => {
             const notification = new notificationModel({
                 title: 'New Application',
                 message: `${company.companyName || company.fullName} submitted a new application (${applicationNumber})`,
+                forAdmin: true,
                 companyId: company._id
             });
             await notification.save();
         } catch (err) {
             console.error('Failed to create notification', err);
+        }
+
+        // Notify ALL admins and super admins by email
+        try {
+            const allAdmins = await userModel.find({
+                role: { $in: ['admin', 'super admin'] }
+            }).select('email');
+            const adminEmails = allAdmins.map(a => a.email).filter(Boolean);
+            if (adminEmails.length > 0) {
+                newApplicationEmail(
+                    adminEmails,
+                    company.companyName || company.fullName || 'A Client',
+                    applicationNumber,
+                    category
+                ).catch(err => console.error('Failed to send new application admin email:', err));
+            }
+        } catch (err) {
+            console.error('Failed to fetch admins for new application email:', err);
         }
 
         // Create Product documents for each product listed

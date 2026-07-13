@@ -163,16 +163,16 @@ const startServer = async () => {
     await connectToDb();
     
     // Automatically set isBuilder: true for test@gmail.com
-    try {
-      const UserModel = require("./Models/user");
-      await UserModel.updateOne(
-        { email: "test@gmail.com" },
-        { $set: { isBuilder: true } }
-      );
-      console.log("Updated test@gmail.com with isBuilder: true");
-    } catch (err) {
-      console.error("Failed to auto-update test@gmail.com isBuilder status:", err);
-    }
+    // try {
+    //   const UserModel = require("./Models/user");
+    //   await UserModel.updateOne(
+    //     { email: "test@gmail.com" },
+    //     { $set: { isBuilder: true } }
+    //   );
+    //   console.log("Updated test@gmail.com with isBuilder: true");
+    // } catch (err) {
+    //   console.error("Failed to auto-update test@gmail.com isBuilder status:", err);
+    // }
 
     if (process.env.NODE_ENV !== "production") {
       server.listen(PORT, () => {
