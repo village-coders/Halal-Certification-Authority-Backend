@@ -1,9 +1,9 @@
 const productModel = require("../Models/product");
 const userModel = require("../Models/user");
 const applicationModel = require("../Models/application");
-const sendProductApprovalEmail = require("../Services/Resend/productApprovalEmail");
-const sendProductInvoiceEmail = require("../Services/Resend/productInvoicePaidEmail");
-const sendTrackingUpdateEmail = require("../Services/Resend/trackingUpdateEmail");
+const sendProductApprovalEmail = require("../Services/Nodemailer/productApprovalEmail");
+const sendProductInvoiceEmail = require("../Services/Nodemailer/productInvoicePaidEmail");
+const sendTrackingUpdateEmail = require("../Services/Nodemailer/trackingUpdateEmail");
 const notificationModel = require('../Models/notification');
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');

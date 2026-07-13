@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /**
  * Sends an email to accountants, super admins, and application officers when a proof of payment is uploaded.
@@ -28,8 +28,8 @@ const proofOfPaymentUploadedEmail = async (
 
     const adminPortalUrl = `${process.env.admin_domain || 'http://localhost:5174'}/invoices`;
 
-    await resend.emails.send({
-      from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+    await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: toEmails,
       subject: `💰 Proof of Payment Uploaded — ${invoiceNumber}`,
       html: `

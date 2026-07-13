@@ -2,7 +2,7 @@ const logsheetModel = require('../Models/logsheet');
 const applicationModel = require('../Models/application');
 const userModel = require('../Models/user');
 const notificationModel = require('../Models/notification');
-const sendTrackingUpdateEmail = require('../Services/Resend/trackingUpdateEmail');
+const sendTrackingUpdateEmail = require('../Services/Nodemailer/trackingUpdateEmail');
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 
@@ -137,7 +137,7 @@ const createLogsheet = async (req, res) => {
                 isActive: true
             });
             
-            const sendShariaBoardNotificationEmail = require('../Services/Resend/shariaBoardNotificationEmail');
+            const sendShariaBoardNotificationEmail = require('../Services/Nodemailer/shariaBoardNotificationEmail');
             
             for (const member of shariaMembers) {
                 // await sendShariaBoardNotificationEmail(

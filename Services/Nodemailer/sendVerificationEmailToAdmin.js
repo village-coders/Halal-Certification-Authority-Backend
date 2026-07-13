@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
   try {
@@ -10,8 +10,8 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
 
     const verificationLink = `${process.env.ADMIN_DOMAIN}/verify/${token}`;
 
-    const data = await resend.emails.send({
-      from: "Halal & Haram Distinction and Development Initiative <onboarding@theyoungpioneers.com>",
+    const data = await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "🔐 Verify Your Admin Email Address",
       html: `
@@ -53,7 +53,7 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
     });
 
     console.log("📧 Admin verification email sent successfully!");
-    console.log("Message ID:", data.id);
+    console.log("Message ID:", data.messageId);
   } catch (error) {
     console.error("❌ Failed to send admin verification email:");
     console.error(error?.response || error);

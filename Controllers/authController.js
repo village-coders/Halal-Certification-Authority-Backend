@@ -1,10 +1,10 @@
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const userModel = require("../Models/user")
-const sendVerificationEmail = require("../Services/Resend/sendVerificationEmail")
+const sendVerificationEmail = require("../Services/Nodemailer/sendVerificationEmail")
 const generateRandomString = require("../Utils/generateRandomString")
-const sendVerificationEmailToAdmin = require("../Services/Resend/sendVerificationEmailToAdmin")
-const sendResetPasswordEmail = require("../Services/Resend/sendResetPasswordEmail")
+const sendVerificationEmailToAdmin = require("../Services/Nodemailer/sendVerificationEmailToAdmin")
+const sendResetPasswordEmail = require("../Services/Nodemailer/sendResetPasswordEmail")
 
 //Signup
 const signup = async (req, res, next) => {

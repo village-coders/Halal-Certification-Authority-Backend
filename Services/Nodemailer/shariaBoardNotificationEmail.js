@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /**
  * Sends an email to a Shari'a Board member alerting them that a logsheet requires their review.
@@ -15,8 +15,8 @@ const sendShariaBoardNotificationEmail = async (email, memberName, companyName, 
     try {
         console.log(`📤 Sending Shari'a Board notification email to:`, email);
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: `📜 Review Required: Logsheet for ${companyName} (${applicationNumber})`,
             html: `

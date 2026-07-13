@@ -1,15 +1,15 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendAuditReportUploadedEmail = async (email, companyName, applicationId) => {
     try {
         console.log("📤 Sending audit report upload notification to:", email);
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "📎 Audit Report Available - Halal And Haram Distinction Initiative Development",
             html: `

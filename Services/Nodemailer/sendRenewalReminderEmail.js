@@ -1,16 +1,16 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendRenewalReminderEmail = async (recipientEmail, companyName, certificateNumber, expiryDate, isExpired) => {
     try {
         const statusText = isExpired ? "has expired" : "is expiring soon";
         const actionText = isExpired ? "renew it immediately" : "renew it before it expires";
         
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: recipientEmail,
             subject: `Action Required: Certificate ${certificateNumber} ${statusText}`,
             html: `

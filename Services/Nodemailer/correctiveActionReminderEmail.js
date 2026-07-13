@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendCorrectiveActionReminderEmail = async (email, companyName, pendingIssues) => {
     try {
@@ -10,8 +10,8 @@ const sendCorrectiveActionReminderEmail = async (email, companyName, pendingIssu
 
         const issuesList = pendingIssues.map(p => `<li>${p.issue}</li>`).join("");
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "⚠️ REMINDER: Corrective Actions Required - Halal And Haram Distinction Initiative Development",
             html: `

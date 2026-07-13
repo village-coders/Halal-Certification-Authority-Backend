@@ -1,26 +1,26 @@
 const nodemailer = require("nodemailer");
-const dotenv = require("dotenv")
-dotenv.config()
+const dotenv = require("dotenv");
+dotenv.config();
+
 const transporter = nodemailer.createTransport({
-    // host: "smtp.gmail.com",
-    service: "gmail",
-    // secure: false,
-    // port: 587,
+    host: process.env.EMAIL_HOST || "mail.halalcert.com.ng",
+    port: parseInt(process.env.EMAIL_PORT) || 465,
+    secure: true, // true for 465, false for other ports
     auth: {
-        user: process.env.Nodemailer_User,
-        pass: process.env.Nodemailer_Pass
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     },
     tls: {
-        rejectUnauthorized: false, // Bypasses certificate validation
+        rejectUnauthorized: false,
     },
+});
 
-})
-module.exports = transporter
+module.exports = transporter;
 
-transporter.verify((err,success)=>{
-    if(success){
-        console.log("Ready to send email");        
-    }else{
-        console.log(err);        
+transporter.verify((err, success) => {
+    if (success) {
+        console.log("Ready to send email via cPanel Nodemailer");        
+    } else {
+        console.log("Transporter verification failed:", err);        
     }
-})
+});

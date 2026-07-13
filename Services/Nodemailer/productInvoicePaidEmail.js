@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendPaidInvoiceEmail = async (
   email,
@@ -14,8 +14,8 @@ const sendPaidInvoiceEmail = async (
   try {
     console.log("📤 Sending paid invoice email to:", email);
 
-    const data = await resend.emails.send({
-      from: "Halal and Haram Distinction Development Initiative <support@theyoungpioneers.com>",
+    const data = await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "✅ Payment Confirmation – Invoice Paid Successfully",
       html: `
@@ -64,7 +64,7 @@ const sendPaidInvoiceEmail = async (
     });
 
     console.log("📧 Paid invoice email sent!");
-    console.log("Message ID:", data.id);
+    console.log("Message ID:", data.messageId);
   } catch (error) {
     console.error("❌ Failed to send paid invoice email:", error);
   }

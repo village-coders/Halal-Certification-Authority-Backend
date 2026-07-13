@@ -4,9 +4,9 @@ const generateRandomString = require("../Utils/generateRandomString");
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 const bcrypt = require("bcryptjs");
-const sendVerificationEmail = require("../Services/Resend/sendVerificationEmail");
-const sendVerificationEmailToAdmin = require("../Services/Resend/sendVerificationEmailToAdmin");
-const sendBulkEmail = require("../Services/Resend/sendBulkEmail");
+const sendVerificationEmail = require("../Services/Nodemailer/sendVerificationEmail");
+const sendVerificationEmailToAdmin = require("../Services/Nodemailer/sendVerificationEmailToAdmin");
+const sendBulkEmail = require("../Services/Nodemailer/sendBulkEmail");
 const { uploadToHybridStorage } = require("../Utils/fileUpload");
 const certificateModel = require("../Models/certificate");
 

@@ -3,7 +3,7 @@ const applicationModel = require('../Models/application');
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 const { uploadToHybridStorage } = require('../Utils/fileUpload');
-const proofOfPaymentUploadedEmail = require('../Services/Resend/proofOfPaymentUploadedEmail');
+const proofOfPaymentUploadedEmail = require('../Services/Nodemailer/proofOfPaymentUploadedEmail');
 const userModel = require('../Models/user');
 const notificationModel = require('../Models/notification');
 

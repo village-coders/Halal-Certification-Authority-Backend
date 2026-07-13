@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /**
  * Sends an email to the lead auditor notifying them of a scheduled audit.
@@ -25,8 +25,8 @@ const sendAuditScheduledEmail = async (
   try {
     console.log("📤 Sending audit scheduled email to lead auditor:", auditorEmail);
 
-    await resend.emails.send({
-      from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+    await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: auditorEmail,
       subject: "📋 Audit Scheduled — Action Required",
       html: `

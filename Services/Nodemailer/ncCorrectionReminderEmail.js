@@ -1,15 +1,15 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendNcCorrectionReminderEmail = async (email, companyName) => {
     try {
         console.log("📤 Sending NC correction reminder to:", email);
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "⚠️ ACTION REQUIRED: Please Submit Your NC Correction - Halal Certification",
             html: `

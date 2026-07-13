@@ -3,9 +3,9 @@ const applicationModel = require('../Models/application');
 const invoiceModel = require('../Models/invoice');
 const userModel = require('../Models/user');
 const { getGridFSBucket } = require('../Config/connectToDb');
-const sendAuditReportUploadedEmail = require('../Services/Resend/auditReportUploadedEmail');
-const sendCorrectiveActionReminderEmail = require('../Services/Resend/correctiveActionReminderEmail');
-const sendNcCorrectionReminderEmail = require('../Services/Resend/ncCorrectionReminderEmail');
+const sendAuditReportUploadedEmail = require('../Services/Nodemailer/auditReportUploadedEmail');
+const sendCorrectiveActionReminderEmail = require('../Services/Nodemailer/correctiveActionReminderEmail');
+const sendNcCorrectionReminderEmail = require('../Services/Nodemailer/ncCorrectionReminderEmail');
 const { Readable } = require('stream');
 
 // Schedule an audit (Admin only)

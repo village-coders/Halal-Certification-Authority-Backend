@@ -1,51 +1,52 @@
-// const dotenv = require("dotenv");
-// const transporter = require('./transporter');
+const transporter = require("./transporter");
+const dotenv = require("dotenv");
+dotenv.config();
 
-// const sendVerificationEmail = async(email, userFirstName, token) => {
-//   const options = {
-//     to: email,
-//     subject: "✅ Verify Your Email for Halal Food Certification",
-//     from: `"Halal Food Certification" <${process.env.Nodemailer_User}>`,
-//     replyTo: "support@halalfoodcertification.org",
-//     html: `
-//       <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
-//         <p style="margin-bottom: 16px;">Dear ${userFirstName},</p>
 
-//         <p style="margin-bottom: 16px;">
-//           Thank you for applying with <strong>Halal Food Certification</strong>. We’re excited to support your journey in ensuring halal compliance and trust for your customers.
-//         </p>
 
-//         <p style="margin-bottom: 16px;">
-//           To complete your registration, please confirm your email address by clicking the button below:
-//         </p>
+const sendVerificationEmail = async (email, userFirstName, token) => {
+  try {
+    console.log("📤 Sending verification email to:", email);
 
-//         <p style="margin: 20px 0;">
-//           <a href="${process.env.client_domain}/verify/${token}"
-//              style="display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-//              Verify My Email
-//           </a>
-//         </p>
+    const data = await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "✅ Verify Your Email for Halal and Haram Distinction Development Initiative",
+      html: `
+        <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
+          <p>Dear ${userFirstName},</p>
 
-//         <p style="margin-bottom: 16px;">
-//           Email verification helps us secure your account and keep you updated on the status of your halal certification process.
-//         </p>
+          <p>
+            Thank you for registering with <strong>Halal and Haram Distinction Development Initiative</strong>.
+          </p>
 
-//         <p style="margin-bottom: 16px;">
-//           We look forward to working with you.
-//         </p>
+          <p>
+              Please confirm your email address by clicking the button below:
+          </p>
 
-//         <p style="font-weight: bold;">The Halal Food Certification Team</p>
-//       </div>
-//     `
-//   };
+          <p>
+            <a href="${process.env.client_domain}/verify/${token}"
+              style="display:inline-block;padding:12px 24px;background:#28a745;color:#fff;text-decoration:none;border-radius:5px;">
+              Verify My Email
+            </a>
+          </p>
 
-//   await transporter.sendMail(options, (err, info) => {
-//     if (err) {
-//       console.log(err.message);
-//     } else {
-//       console.log("Verification email sent successfully");
-//     }
-//   });
-// };
+          <p style="font-size: 14px; color: #666; margin-top: 24px;">
+            If the button above does not work, you can copy and paste the following link into your browser:<br/><br/>
+            <a href="${process.env.client_domain}/verify/${token}" style="color: #0056b3; word-break: break-all;">
+              ${process.env.client_domain}/verify/${token}
+            </a>
+          </p>
 
-// module.exports = sendVerificationEmail;
+          <p>The Halal and Haram Distinction Development Initiative Team</p>
+        </div>
+      `,
+    });
+    console.log("📧 Email sent successfully!");
+    console.log("Message ID:", data.messageId); // useful for tracking
+  } catch (error) {
+    console.log(error);    
+  }
+};
+
+module.exports = sendVerificationEmail;

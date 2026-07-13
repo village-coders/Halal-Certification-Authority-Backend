@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /**
  * Sends an email to ALL admins and super admins when a client submits a new application or renewal.
@@ -30,8 +30,8 @@ const newApplicationEmail = async (toEmails, companyName, applicationNumber, cat
     const badgeColor = isRenewal ? "#1e40af" : "#00853b";
     const badgeLabel = isRenewal ? "Renewal Application" : "New Application";
 
-    await resend.emails.send({
-      from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+    await transporter.sendMail({
+      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: toEmails,
       subject,
       html: `

@@ -6,9 +6,9 @@ const invoiceModel = require('../Models/invoice');
 const certificateModel = require('../Models/certificate');
 const productModel = require('../Models/product');
 const { checkAndStatusSync } = require('./certificateController');
-const sendAuditScheduledEmail = require('../Services/Resend/auditScheduledEmail');
-const sendTrackingUpdateEmail = require('../Services/Resend/trackingUpdateEmail');
-const newApplicationEmail = require('../Services/Resend/newApplicationEmail');
+const sendAuditScheduledEmail = require('../Services/Nodemailer/auditScheduledEmail');
+const sendTrackingUpdateEmail = require('../Services/Nodemailer/trackingUpdateEmail');
+const newApplicationEmail = require('../Services/Nodemailer/newApplicationEmail');
 
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');

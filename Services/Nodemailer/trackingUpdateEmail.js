@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 /**
  * Sends a generic tracking update email to the applicant.
@@ -16,8 +16,8 @@ const sendTrackingUpdateEmail = async (email, companyName, applicationNumber, st
     try {
         console.log(`📤 Sending tracking update email (${stepName}) to:`, email);
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: `🔔 Progress Update: ${stepName} — Application ${applicationNumber}`,
             html: `

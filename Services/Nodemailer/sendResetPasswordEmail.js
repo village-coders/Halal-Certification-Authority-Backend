@@ -1,8 +1,8 @@
-const { Resend } = require("resend");
+const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendResetPasswordEmail = async (email, name, token, isAdmin = false) => {
     const baseUrl = isAdmin ? process.env.ADMIN_DOMAIN : process.env.client_domain;
@@ -11,8 +11,8 @@ const sendResetPasswordEmail = async (email, name, token, isAdmin = false) => {
     try {
         console.log("📤 Sending password reset email to:", email);
 
-        const data = await resend.emails.send({
-            from: "Halal and Haram Distinction and Development Initiative <support@theyoungpioneers.com>",
+        const data = await transporter.sendMail({
+            from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "🔐 Password Reset Request - Halal and Haram Distinction Development Initiative",
             html: `
@@ -38,7 +38,7 @@ const sendResetPasswordEmail = async (email, name, token, isAdmin = false) => {
             `,
         });
         console.log("📧 Reset email sent successfully!");
-        console.log("Message ID:", data.id);
+        console.log("Message ID:", data.messageId);
     } catch (error) {
         console.error("Error sending reset password email:", error);
         throw new Error("Failed to send reset password email");

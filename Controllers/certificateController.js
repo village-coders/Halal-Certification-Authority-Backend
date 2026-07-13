@@ -7,8 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const certificateModel = require('../Models/certificate');
 const userModel = require('../Models/user');
-const sendCertificateIssuedEmail = require('../Services/Resend/certificateIssuedEmail');
-const { sendRenewalReminderEmail } = require('../Services/Resend/sendRenewalReminderEmail');
+const sendCertificateIssuedEmail = require('../Services/Nodemailer/certificateIssuedEmail');
+const { sendRenewalReminderEmail } = require('../Services/Nodemailer/sendRenewalReminderEmail');
 const { Readable } = require('stream');
 const { getGridFSBucket } = require('../Config/connectToDb');
 

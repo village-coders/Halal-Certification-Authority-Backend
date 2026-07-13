@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const Certificate = require('../Models/certificate');
 const User = require('../Models/user');
-const certificateExpiryEmail = require('../Services/Resend/certificateExpiryEmail');
+const certificateExpiryEmail = require('../Services/Nodemailer/certificateExpiryEmail');
 
 const startCertificateExpiryCron = () => {
     // Run every day at midnight
