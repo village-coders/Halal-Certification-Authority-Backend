@@ -21,7 +21,7 @@ const newApplicationEmail = async (toEmails, companyName, applicationNumber, cat
 
     console.log(`📤 Sending new application notification to ${toEmails.length} admin(s)...`);
 
-    const adminPortalUrl = `${process.env.admin_domain || 'http://localhost:5174'}/applications`;
+    const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/applications`;
     const isRenewal = category === "Renewal Application";
     const subject = isRenewal
       ? `🔄 Renewal Application Submitted — ${applicationNumber}`

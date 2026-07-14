@@ -26,7 +26,7 @@ const proofOfPaymentUploadedEmail = async (
 
     console.log(`📤 Sending proof of payment uploaded email to ${toEmails.length} admins...`);
 
-    const adminPortalUrl = `${process.env.admin_domain || 'http://localhost:5174'}/invoices`;
+    const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/invoices`;
 
     await transporter.sendMail({
       from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
