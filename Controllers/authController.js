@@ -27,7 +27,7 @@ const signup = async (req, res, next) => {
         const verificationExp = Date.now() + 300000
 
         const currentYear = new Date().getFullYear()
-        const companyCount = await userModel.countDocuments({ role: "company", isUnderCompany: false })
+        const companyCount = await userModel.countDocuments({ })
         const formattedCount = String(companyCount + 1).padStart(4, '0');
         const uniqueId = `${formattedCount}-${currentYear}`;
         const regNo = `HDI-${uniqueId}${Math.floor(Math.random() * 100)}`;
