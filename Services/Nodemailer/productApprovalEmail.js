@@ -11,7 +11,7 @@ const sendProductApprovalEmail = async (email, companyName, productName) => {
     const data = await transporter.sendMail({
       from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "🎉 Product Acknowledged – Halal Certification",
+      subject: "🎉 Product Acknowledged!",
       html: `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
           
@@ -25,18 +25,13 @@ const sendProductApprovalEmail = async (email, companyName, productName) => {
 
           <p>
             This acknowledgment confirms that your product meets our halal standards and requirements.
-            You may now proceed to the application stage.
+            You may now proceed to continue with the application.
           </p>
 
           <p style="margin: 24px 0;">
             <span style="display:inline-block;padding:12px 24px;background:#00853b;color:#fff;border-radius:5px;">
               Product Status: Acknowledged
             </span>
-          </p>
-
-          <p>
-            Our team will notify you once the halal certificate has been generated, or if any
-            further information is required.
           </p>
 
           <p>
