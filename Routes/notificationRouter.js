@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { 
     getNotifications, markAsRead, clearNotification, clearAllNotifications,
-    getUserNotifications, markUserAsRead, markReadByType, clearUserNotification, clearAllUserNotifications, dismissModalNotifications
+    getUserNotifications, markUserAsRead, markReadByType, clearUserNotification,
+    clearAllUserNotifications, dismissModalNotifications, dismissSingleModalNotification
 } = require('../Controllers/notificationController');
 const isLoggedIn = require('../Middlewares/isLoggedIn');
 const isAdmin = require('../Middlewares/isAdmin');
@@ -16,7 +17,9 @@ router.get('/user', isLoggedIn, getUserNotifications);
 router.put('/user/mark-read', isLoggedIn, markUserAsRead);
 router.put('/user/mark-read-by-type', isLoggedIn, markReadByType);
 router.post('/user/dismiss-modal', isLoggedIn, dismissModalNotifications);
+router.post('/user/dismiss-modal/:id', isLoggedIn, dismissSingleModalNotification);
 router.delete('/user/clear-all', isLoggedIn, clearAllUserNotifications);
 router.delete('/user/:id', isLoggedIn, clearUserNotification);
 
 module.exports = router;
+

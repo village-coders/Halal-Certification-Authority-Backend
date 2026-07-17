@@ -110,9 +110,23 @@ const dismissModalNotifications = async (req, res) => {
     try {
         await notificationModel.updateMany(
             { forAdmin: false, companyId: req.user.id, showAsModal: true },
-            { $set: { showAsModal: false } }
+            { $set: { showAsModal: false, isRead: true } }
         );
         res.status(200).json({ success: true, message: 'Modal notifications dismissed' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+const dismissSingleModalNotification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await notificationModel.findOneAndUpdate(
+            { _id: id, forAdmin: false, companyId: req.user.id },
+            { $set: { showAsModal: false, isRead: true } }
+        );
+        res.status(200).json({ success: true, message: 'Notification dismissed' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -129,5 +143,6 @@ module.exports = {
     markReadByType,
     clearUserNotification,
     clearAllUserNotifications,
-    dismissModalNotifications
+    dismissModalNotifications,
+    dismissSingleModalNotification
 };

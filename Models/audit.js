@@ -74,6 +74,10 @@ const auditSchema = new mongoose.Schema({
     notes: {
         type: String
     },
+    prepDocuments: [{
+        name: { type: String },
+        url: { type: String }
+    }],
     auditReport: {
         type: String
     },

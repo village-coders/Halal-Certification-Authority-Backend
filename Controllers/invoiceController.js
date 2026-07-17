@@ -65,12 +65,15 @@ const adminCreateInvoice = async (req, res) => {
                 forAdmin: false,
                 type: 'invoice',
                 companyId: userId,
-                showAsModal: true
+                showAsModal: true,
+                actionType: 'view_invoice',
+                actionData: { invoiceId: invoice._id.toString() }
             });
             await notification.save();
         } catch (notifErr) {
             console.error('Failed to create invoice notification:', notifErr);
         }
+
 
         res.status(201).json({ message: "Invoice created successfully", invoice });
     } catch (error) {

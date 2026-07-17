@@ -727,7 +727,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
 
         let filePath = null;
 
-        const sendNotification = async (title, message, showAsModal = false) => {
+        const sendNotification = async (title, message, showAsModal = false, actionType = null, actionData = null) => {
             try {
                 const company = await userModel.findOne({ registrationNo: application.companyId });
                 if (company) {
@@ -737,7 +737,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         forAdmin: false,
                         type: 'application',
                         companyId: company._id,
-                        showAsModal
+                        showAsModal,
+                        actionType: actionType || undefined,
+                        actionData: actionData || undefined
                     });
                     await notification.save();
 
@@ -834,7 +836,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 }
                 application.processData.invoiceSentAt = new Date();
                 application.processStep = Math.max(application.processStep, 5);
-                await sendNotification('Invoice Sent', `An invoice has been sent for your application (${application.applicationNumber}). Next Step: Please log into the portal to view the invoice and upload your proof of payment.`, true);
+                await sendNotification('Invoice Sent', `An invoice has been sent for your application (${application.applicationNumber}). Next Step: Please log into the portal to view the invoice and upload your proof of payment.`, true, 'view_invoice', { applicationId: id });
                 break;
             case 5:
                 // Payment Received — also mark invoice as Proof of Payment Approved
@@ -903,7 +905,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.rejectReason = undefined;
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 1);
 
-                        await sendNotification('Audit Dates Proposed', `2 audit date options have been proposed for your application (${application.applicationNumber}). Next Step: Please log in to select your preferred date or propose alternative dates.`, true);
+                        await sendNotification('Audit Dates Proposed', `2 audit date options have been proposed for your application (${application.applicationNumber}). Next Step: Please log in to select your preferred date or propose alternative dates.`, true, 'respond_audit_schedule', { auditId: audit._id.toString() });
 
                     } else if (auditInfo.action === 'finalizeDate') {
                         // Phase 2: Admin finalizes one of the options (counter-proposals or choice)
@@ -922,7 +924,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.status = 'Date Concluded';
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 1);
 
-                        await sendNotification('Audit Date Concluded', `Audit date has been finalized as ${new Date(auditInfo.date).toLocaleDateString()} at ${auditInfo.time}. Next Step: Prepare your facility for the upcoming audit session.`, true);
+                        await sendNotification('Audit Date Concluded', `Audit date has been finalized as ${new Date(auditInfo.date).toLocaleDateString()} at ${auditInfo.time}. Next Step: Prepare your facility for the upcoming audit session.`, true, 'view_audit', { auditId: audit._id.toString() });
 
                     } else {
                         throw new Error('Invalid schedule action. Use "propose" or "finalizeDate".');
@@ -951,6 +953,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     audit2.auditorPhone = leadAuditor.phone || '';
                     audit2.auditors = auditorsList;
                     audit2.status = 'Scheduled';
+                    if (prepDocPaths.length > 0) {
+                        audit2.prepDocuments = prepDocPaths;
+                    }
                     await audit2.save();
 
                     application.processData.audit.auditors = auditorsList;
@@ -982,7 +987,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             ).catch(err => console.error(`Failed to send audit email to ${auditor.email}:`, err));
                         }
                     }
-                    await sendNotification('Auditors Assigned', `Auditors have been assigned for your audit session (${application.applicationNumber}). We have also attached preparation documents. Next Step: You will be contacted by the auditors shortly. Please log in to view and download the preparation documents to get your facility ready.`, true);
+                    await sendNotification('Auditors Assigned', `Auditors have been assigned for your audit session (${application.applicationNumber}). We have also attached preparation documents. Next Step: You will be contacted by the auditors shortly. Please log in to view and download the preparation documents to get your facility ready.`, true, 'view_audit', { auditId: audit2._id.toString() });
 
                 } else if (subStepNum === 3) {
                     // Sub-step 3: Audited — mark audit as Accepted/Completed start
@@ -992,7 +997,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                     application.processData.audit.auditedAt = new Date();
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 3);
-                    await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for the Non-Conformity (NC) report or the Final Audit report to be uploaded.`, true);
+                    await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for the Non-Conformity (NC) report or the Final Audit report to be uploaded.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
 
                 } else if (subStepNum === 4) {
                     // Sub-step 4: NC Report upload — save file to audit record
@@ -1005,7 +1010,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             });
                         }
                         application.processData.audit.ncReport = filePath;
-                        await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true);
+                        await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true, 'upload_nc_correction', { auditId: application.processData?.audit?.auditId });
                     }
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 4);
 
@@ -1049,7 +1054,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.ncRejectFiles = rejectFileUrls;
                         application.processData.audit.ncCorrectionFile = [];
                         
-                        await sendNotification('NC Corrections Rejected', `Your NC corrections for application (${application.applicationNumber}) were rejected. Reason: ${stepData.rejectReason}. Next Step: Please review the feedback and re-upload your corrections.`, true);
+                        await sendNotification('NC Corrections Rejected', `Your NC corrections for application (${application.applicationNumber}) were rejected. Reason: ${stepData.rejectReason}. Next Step: Please review the feedback and re-upload your corrections.`, true, 'upload_nc_correction', { auditId: auditId });
                     } else {
                         if (auditId) {
                             const auditDoc = await auditModel.findById(auditId);
@@ -1065,7 +1070,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.status = 'NC Closed';
                         application.processData.audit.ncClosedAt = new Date();
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 5);
-                        await sendNotification('Corrections Resolved', `All NC corrections for your application (${application.applicationNumber}) have been verified as closed. Next Step: Await the submission of the final Audit Report by the Lead Auditor.`, true);
+                        await sendNotification('Corrections Resolved', `All NC corrections for your application (${application.applicationNumber}) have been verified as closed. Next Step: Await the submission of the final Audit Report by the Lead Auditor.`, true, 'view_audit', { auditId: auditId });
                     }
                 } else if (subStepNum === 6) {
                     // Sub-step 6: Audit Report uploaded — ONLY by admin
@@ -1096,7 +1101,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         });
                     }
                     application.processStep = Math.max(application.processStep, 7);
-                    await sendNotification('Audit Phase Completed', `The audit phase for application (${application.applicationNumber}) holds finalized completion status. Next Step: Your application will now be forwarded to the Shari'a Board for review.`, true);
+                    await sendNotification('Audit Phase Completed', `The audit phase for application (${application.applicationNumber}) holds finalized completion status. Next Step: Your application will now be forwarded to the Shari'a Board for review.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
                 }
                 break;
             }
