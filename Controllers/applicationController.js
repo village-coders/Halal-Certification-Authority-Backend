@@ -9,6 +9,7 @@ const { checkAndStatusSync } = require('./certificateController');
 const sendAuditScheduledEmail = require('../Services/Nodemailer/auditScheduledEmail');
 const sendTrackingUpdateEmail = require('../Services/Nodemailer/trackingUpdateEmail');
 const newApplicationEmail = require('../Services/Nodemailer/newApplicationEmail');
+const applicationSubmittedEmail = require('../Services/Nodemailer/applicationSubmittedEmail');
 
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
@@ -323,6 +324,16 @@ const createApplication = async (req, res) => {
             }
         } catch (err) {
             console.error('Failed to fetch admins for new application email:', err);
+        }
+
+        // Notify the client by email
+        if (company && company.email) {
+            applicationSubmittedEmail(
+                company.email,
+                company.companyName || company.fullName || 'Valued Client',
+                applicationNumber,
+                category
+            ).catch(err => console.error('Failed to send application submission email to client:', err));
         }
 
         // Create Product documents for each product listed
