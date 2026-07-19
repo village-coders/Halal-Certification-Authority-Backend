@@ -556,6 +556,14 @@ const rejectApplication = async (req, res) => {
 
         await application.save()
 
+        // Delete all products associated with this rejected application instantly
+        try {
+            await productModel.deleteMany({ applicationId: application._id });
+            console.log(`🗑️ Deleted products for rejected application: ${application._id}`);
+        } catch (err) {
+            console.error('Failed to delete products for rejected application:', err);
+        }
+
         const company = await userModel.findOne({ registrationNo: application.companyId });
         if (company) {
             try {
@@ -1173,6 +1181,12 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 });
 
                 await certificate.save();
+
+                // Mark all associated products as approved
+                await productModel.updateMany(
+                    { applicationId: id },
+                    { $set: { status: 'approved' } }
+                );
 
                 application.processData.certificateFiles = finalFiles;
                 application.processData.certificateFileIds = finalFileIds;
