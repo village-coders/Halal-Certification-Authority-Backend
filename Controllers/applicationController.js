@@ -1064,7 +1064,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.ncRejectReason = stepData.rejectReason;
                         application.processData.audit.ncRejectFiles = rejectFileUrls;
                         application.processData.audit.ncCorrectionFile = [];
-                        
+
                         await sendNotification('NC Corrections Rejected', `Your NC corrections for application (${application.applicationNumber}) were rejected. Reason: ${stepData.rejectReason}. Next Step: Please review the feedback and re-upload your corrections.`, true, 'upload_nc_correction', { auditId: auditId });
                     } else {
                         if (auditId) {

@@ -15,7 +15,15 @@ const isLoggedIn =  async (req, res, next)=>{
         })
     }
     // verify if the token is valid and has not expired
-    const decoded = jwt.verify(token, process.env.jwt_secret)
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.jwt_secret);
+    } catch (err) {
+        return res.status(401).json({
+            status: "error",
+            message: "Invalid or expired token. Please log in again."
+        });
+    }
     // find the user that the token was generated for
     const user = await UserModel.findById(decoded.id)
 
