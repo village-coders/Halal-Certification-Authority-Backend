@@ -2,16 +2,24 @@ const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const sendVerificationEmail = async (email, userFirstName, token) => {
+/**
+ * Sends an email to the client when their Halal Certification application is accepted.
+ *
+ * @param {string} email - Client's email address.
+ * @param {string} clientName - Name of the client/company.
+ * @param {string} applicationId - Application ID/Number.
+ */
+const applicationAcceptedEmail = async (email, clientName, applicationId) => {
   try {
-    console.log("📤 Sending verification email to:", email);
+    console.log("📤 Sending application accepted email to:", email);
 
+    const clientPortalUrl = `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}/track-application/${applicationId}`;
     const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
     const data = await transporter.sendMail({
       from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "✅ Verify Your Email for Halal and Haram Distinction Development Initiative",
+      subject: `🎉 Application Reviewed & Accepted — ${applicationId}`,
       html: `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -23,36 +31,33 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
               <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal & Haram Distinction Development Initiative (HDI)</h2>
             </header>
 
-            <p style="font-size: 16px;">Dear <strong>${userFirstName}</strong>,</p>
+            <p style="font-size: 16px;">Dear <strong>${clientName}</strong>,</p>
+
+            <p>The Halal Team wishes you continued success in your business endeavors.</p>
 
             <p>
-              Welcome to the <strong>Halal & Haram Distinction Development Initiative (HDI).</strong> We are delighted to have you join our platform.
+              We are pleased to inform you that your Halal Certification application <strong>${applicationId}</strong> has been successfully reviewed and accepted.
             </p>
 
-            <p>
-              Your account has been created successfully. To activate your account and gain full access to our services, please verify your email address by clicking the button below.
-            </p>
+            <div style="background-color: #f0fdf4; border-left: 4px solid #00853b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+              <p style="margin: 0; font-weight: bold; color: #166534;">Next Step:</p>
+              <p style="margin: 6px 0 0 0; color: #15803d;">
+                Your invoice will be issued and sent to you shortly. You can also track the progress of your application anytime through your HDI Portal dashboard.
+              </p>
+            </div>
 
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${process.env.client_domain}/verify/${token}"
-                style="display:inline-block;padding:14px 28px;background:#00853b;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;">
-                Verify My Email
+              <a href="${clientPortalUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
+                View Application Progress
               </a>
             </div>
 
-            <p style="font-size: 14px; color: #666; margin-top: 24px;">
-              If the button above does not work, you can copy and paste the following link into your browser:<br/><br/>
-              <a href="${process.env.client_domain}/verify/${token}" style="color: #00853b; word-break: break-all;">
-                ${process.env.client_domain}/verify/${token}
-              </a>
-            </p>
-
-            <p style="margin-top: 24px;">
-              Thank you for choosing the Halal & Haram Distinction Development Initiative (HDI). We look forward to serving you and supporting your journey toward Halal compliance.
+            <p>
+              If you require any assistance, please feel free to contact <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none; font-weight: bold;">support@halalcert.com.ng</a> for support.
             </p>
 
             <p style="margin-top: 32px; margin-bottom: 0;">
-              Warm regards,<br />
+              Kind regards,<br />
               <strong>The Halal Team</strong><br />
               Halal & Haram Distinction Development Initiative (HDI).
             </p>
@@ -67,11 +72,14 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
         </div>
       `,
     });
-    console.log("📧 Email sent successfully!");
+
+    console.log("📧 Application accepted email sent successfully!");
     console.log("Message ID:", data.messageId);
+    return data;
   } catch (error) {
-    console.log(error);    
+    console.error("❌ Error sending application accepted email:", error);
+    return null;
   }
 };
 
-module.exports = sendVerificationEmail;
+module.exports = applicationAcceptedEmail;

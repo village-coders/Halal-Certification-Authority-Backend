@@ -2,47 +2,64 @@ const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-
-
 const sendProductApprovalEmail = async (email, companyName, productName) => {
   try {
     console.log("📤 Sending product acknowledgment email to:", email);
 
+    const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
+
     const data = await transporter.sendMail({
-      from: `Halal and Haram Distinction and Development Initiative <${process.env.EMAIL_USER}>`,
+      from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "🎉 Product Acknowledged!",
       html: `
-        <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px;">
-          
-          <p>Dear ${companyName},</p>
+        <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
+            
+            <header style="text-align: center; margin-bottom: 24px;">
+              <a href="https://halalcert.com.ng" target="_blank" style="text-decoration: none;">
+                <img loading="lazy" src="${logoUrl}" alt="Halal & Haram Distinction Development Initiative Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
+              </a>
+              <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal & Haram Distinction Development Initiative (HDI)</h2>
+            </header>
 
-          <p>
-            We are pleased to inform you that your product,
-            <strong>${productName}</strong>, has been <strong>successfully acknowledged</strong>
-            by the Halal and Haram Distinction Development Initiative.
-          </p>
+            <p style="font-size: 16px;">Dear <strong>${companyName}</strong>,</p>
 
-          <p>
-            This acknowledgment confirms that your product meets our halal standards and requirements.
-            You may now proceed to continue with the application.
-          </p>
+            <p>The Halal Team wishes you continued success in your business endeavors.</p>
 
-          <p style="margin: 24px 0;">
-            <span style="display:inline-block;padding:12px 24px;background:#00853b;color:#fff;border-radius:5px;">
-              Product Status: Acknowledged
-            </span>
-          </p>
+            <p>
+              We are pleased to inform you that your product,
+              <strong>${productName}</strong>, has been <strong>successfully acknowledged</strong>
+              by the Halal & Haram Distinction Development Initiative (HDI).
+            </p>
 
-          <p>
-            If you have any questions, feel free to contact our support team.
-          </p>
+            <div style="background-color: #f0fdf4; border-left: 4px solid #00853b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+              <p style="margin: 0; font-weight: bold; color: #166534;">Product Status:</p>
+              <p style="margin: 6px 0 0 0; color: #15803d; font-weight: bold;">
+                Acknowledged
+              </p>
+              <p style="margin: 8px 0 0 0; color: #15803d;">
+                This acknowledgment confirms that your product meets our Halal standards and requirements. You may now proceed to continue with your application.
+              </p>
+            </div>
 
-          <p style="margin-top: 32px;">
-            Best regards,<br />
-            <strong>Halal and Haram Distinction Development Initiative Team</strong>
-          </p>
+            <p>
+              If you have any questions or require assistance, please feel free to contact <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none; font-weight: bold;">support@halalcert.com.ng</a> for support.
+            </p>
 
+            <p style="margin-top: 32px; margin-bottom: 0;">
+              Best regards,<br />
+              <strong>The Halal Team</strong><br />
+              Halal & Haram Distinction Development Initiative (HDI)
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px 0;" />
+            <footer style="text-align: center; font-size: 13px; color: #666; line-height: 1.5;">
+              <p style="margin: 4px 0; font-weight: bold; color: #333;">The Halal & Haram Distinction Development Initiative (HDI) Team</p>
+              <p style="margin: 4px 0;">Website: <a href="https://halalcert.com.ng" style="color: #00853b; text-decoration: none;">halalcert.com.ng</a></p>
+              <p style="margin: 4px 0;">Email: <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none;">support@halalcert.com.ng</a></p>
+            </footer>
+          </div>
         </div>
       `,
     });

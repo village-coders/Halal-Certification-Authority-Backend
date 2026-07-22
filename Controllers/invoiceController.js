@@ -4,6 +4,8 @@ const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 const { uploadToHybridStorage } = require('../Utils/fileUpload');
 const proofOfPaymentUploadedEmail = require('../Services/Nodemailer/proofOfPaymentUploadedEmail');
+const invoiceIssuedEmail = require('../Services/Nodemailer/invoiceIssuedEmail');
+const paymentReceivedEmail = require('../Services/Nodemailer/paymentReceivedEmail');
 const userModel = require('../Models/user');
 const notificationModel = require('../Models/notification');
 
@@ -70,8 +72,22 @@ const adminCreateInvoice = async (req, res) => {
                 actionData: { invoiceId: invoice._id.toString() }
             });
             await notification.save();
+
+            const user = await userModel.findById(userId);
+            if (user && user.email) {
+                let appNo = invoiceNumber;
+                if (applicationId) {
+                    const application = await applicationModel.findById(applicationId);
+                    if (application) appNo = application.applicationNumber;
+                }
+                invoiceIssuedEmail(
+                    user.email,
+                    user.companyName || user.fullName || 'Valued Client',
+                    appNo
+                ).catch(err => console.error('Failed to send invoice issued email:', err));
+            }
         } catch (notifErr) {
-            console.error('Failed to create invoice notification:', notifErr);
+            console.error('Failed to create invoice notification/email:', notifErr);
         }
 
 
@@ -266,6 +282,25 @@ const approvePayment = async (req, res) => {
         invoice.paidAt = new Date();
 
         await invoice.save();
+
+        // Send payment confirmed email to client
+        try {
+            const user = await userModel.findById(invoice.userId);
+            if (user && user.email) {
+                let appNo = invoice.invoiceNumber;
+                if (invoice.applicationId) {
+                    const application = await applicationModel.findById(invoice.applicationId);
+                    if (application) appNo = application.applicationNumber;
+                }
+                paymentReceivedEmail(
+                    user.email,
+                    user.companyName || user.fullName || 'Valued Client',
+                    appNo
+                ).catch(err => console.error('Failed to send payment received email:', err));
+            }
+        } catch (emailErr) {
+            console.error('Error fetching user to send payment received email:', emailErr);
+        }
 
         res.json({ message: 'Payment approved and status updated to Paid', invoice });
     } catch (error) {

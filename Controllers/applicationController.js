@@ -7,9 +7,23 @@ const certificateModel = require('../Models/certificate');
 const productModel = require('../Models/product');
 const { checkAndStatusSync } = require('./certificateController');
 const sendAuditScheduledEmail = require('../Services/Nodemailer/auditScheduledEmail');
+const sendVerificationEmail = require('../Services/Nodemailer/sendVerificationEmail');
 const sendTrackingUpdateEmail = require('../Services/Nodemailer/trackingUpdateEmail');
 const newApplicationEmail = require('../Services/Nodemailer/newApplicationEmail');
 const applicationSubmittedEmail = require('../Services/Nodemailer/applicationSubmittedEmail');
+const applicationAcceptedEmail = require('../Services/Nodemailer/applicationAcceptedEmail');
+const auditDatesProposedEmail = require('../Services/Nodemailer/auditDatesProposedEmail');
+const auditorsAssignedEmail = require('../Services/Nodemailer/auditorsAssignedEmail');
+const auditCompletedEmail = require('../Services/Nodemailer/auditCompletedEmail');
+const ncFlaggedEmail = require('../Services/Nodemailer/ncFlaggedEmail');
+const ncClosedEmail = require('../Services/Nodemailer/ncClosedEmail');
+const ncRejectedEmail = require('../Services/Nodemailer/ncRejectedEmail');
+const sentToShariaBoardEmail = require('../Services/Nodemailer/sentToShariaBoardEmail');
+const finalAuditReportUploadedEmail = require('../Services/Nodemailer/finalAuditReportUploadedEmail');
+const applicationSuccessfulEmail = require('../Services/Nodemailer/applicationSuccessfulEmail');
+const certificateIssuedEmail = require('../Services/Nodemailer/certificateIssuedEmail');
+const invoiceIssuedEmail = require('../Services/Nodemailer/invoiceIssuedEmail');
+const paymentReceivedEmail = require('../Services/Nodemailer/paymentReceivedEmail');
 
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
@@ -642,13 +656,11 @@ const acceptApplication = async (req, res) => {
 
                 // Send email notification
                 if (company.email) {
-                    sendTrackingUpdateEmail(
+                    applicationAcceptedEmail(
                         company.email,
                         company.companyName || company.fullName || 'Valued Client',
-                        application.applicationNumber,
-                        title,
-                        message
-                    ).catch(err => console.error('Failed to send tracking email:', err));
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send application accepted email:', err));
                 }
             } catch (err) {
                 console.error(err);
@@ -761,16 +773,6 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         actionData: actionData || undefined
                     });
                     await notification.save();
-
-                    if (company.email) {
-                        sendTrackingUpdateEmail(
-                            company.email,
-                            company.companyName || company.fullName || 'Valued Client',
-                            application.applicationNumber,
-                            title,
-                            message
-                        ).catch(err => console.error('Failed to send tracking email:', err));
-                    }
                 }
             } catch (err) {
                 console.error('Failed to create notification', err);
@@ -815,6 +817,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.acceptedAt = new Date();
                 application.processStep = Math.max(application.processStep, 4);
                 await sendNotification('Application Accepted', `Your application (${application.applicationNumber}) has been formally accepted. Next Step: Please await the issuance of your invoice, which will be sent to you shortly.`);
+
+                const companyAccepted = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyAccepted && companyAccepted.email) {
+                    applicationAcceptedEmail(
+                        companyAccepted.email,
+                        companyAccepted.companyName || companyAccepted.fullName || 'Valued Client',
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send Application Accepted email to client:', err));
+                }
                 break;
             case 3:
                 // Product Approval Forms Received
@@ -822,6 +833,17 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.productFormsReceivedAt = new Date();
                 application.processStep = Math.max(application.processStep, 4);
                 await sendNotification('Forms Received', `Product approval forms for application (${application.applicationNumber}) have been received. Next Step: Please await your invoice.`);
+
+                const companyForms = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyForms && companyForms.email) {
+                    sendTrackingUpdateEmail(
+                        companyForms.email,
+                        companyForms.companyName || companyForms.fullName || 'Valued Client',
+                        application.applicationNumber,
+                        'Product Approval Forms Received',
+                        'Your product approval forms have been successfully received by our team. Please await your invoice which will be issued shortly.'
+                    ).catch(err => console.error('Failed to send Product Forms email to client:', err));
+                }
                 break;
             case 4:
                 // Invoice Sent - upload invoice file
@@ -856,6 +878,18 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.invoiceSentAt = new Date();
                 application.processStep = Math.max(application.processStep, 5);
                 await sendNotification('Invoice Sent', `An invoice has been sent for your application (${application.applicationNumber}). Next Step: Please log into the portal to view the invoice and upload your proof of payment.`, true, 'view_invoice', { applicationId: id });
+
+                const companyInvoice = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyInvoice && companyInvoice.email) {
+                    const invoiceDoc = await invoiceModel.findOne({ applicationId: id });
+                    invoiceIssuedEmail(
+                        companyInvoice.email,
+                        companyInvoice.companyName || companyInvoice.fullName || 'Valued Client',
+                        application.applicationNumber,
+                        invoiceDoc?.invoiceNumber || application.applicationNumber,
+                        invoiceDoc?.amount ? `₦${invoiceDoc.amount.toLocaleString()}` : 'See attached invoice'
+                    ).catch(err => console.error('Failed to send Invoice Issued email to client:', err));
+                }
                 break;
             case 5:
                 // Payment Received — also mark invoice as Proof of Payment Approved
@@ -869,6 +903,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     { status: 'Proof of Payment Approved', paidAt: new Date() }
                 );
                 await sendNotification('Payment Received', `Your payment for application (${application.applicationNumber}) has been confirmed. Next Step: We will be proposing audit dates soon. Please check your dashboard to review and approve them.`);
+
+                const companyPayment = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyPayment && companyPayment.email) {
+                    paymentReceivedEmail(
+                        companyPayment.email,
+                        companyPayment.companyName || companyPayment.fullName || 'Valued Client',
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send Payment Received email to client:', err));
+                }
                 break;
             case 6: {
                 // Audit sub-steps — all changes sync to the real audit collection
@@ -925,6 +968,14 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 1);
 
                         await sendNotification('Audit Dates Proposed', `2 audit date options have been proposed for your application (${application.applicationNumber}). Next Step: Please log in to select your preferred date or propose alternative dates.`, true, 'respond_audit_schedule', { auditId: audit._id.toString() });
+
+                        if (company && company.email) {
+                            auditDatesProposedEmail(
+                                company.email,
+                                company.companyName || company.fullName || 'Valued Client',
+                                application.applicationNumber
+                            ).catch(err => console.error('Failed to send audit dates proposed email:', err));
+                        }
 
                     } else if (auditInfo.action === 'finalizeDate') {
                         // Phase 2: Admin finalizes one of the options (counter-proposals or choice)
@@ -1008,6 +1059,14 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                     await sendNotification('Auditors Assigned', `Auditors have been assigned for your audit session (${application.applicationNumber}). We have also attached preparation documents. Next Step: You will be contacted by the auditors shortly. Please log in to view and download the preparation documents to get your facility ready.`, true, 'view_audit', { auditId: audit2._id.toString() });
 
+                    if (company2 && company2.email) {
+                        auditorsAssignedEmail(
+                            company2.email,
+                            company2.companyName || company2.fullName || 'Valued Client',
+                            application.applicationNumber
+                        ).catch(err => console.error('Failed to send auditors assigned email to client:', err));
+                    }
+
                 } else if (subStepNum === 3) {
                     // Sub-step 3: Audited — mark audit as Accepted/Completed start
                     const auditId = application.processData?.audit?.auditId;
@@ -1017,6 +1076,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     application.processData.audit.auditedAt = new Date();
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 3);
                     await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for the Non-Conformity (NC) report or the Final Audit report to be uploaded.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
+
+                    const company3 = await userModel.findOne({ registrationNo: application.companyId });
+                    if (company3 && company3.email) {
+                        auditCompletedEmail(
+                            company3.email,
+                            company3.companyName || company3.fullName || 'Valued Client',
+                            application.applicationNumber
+                        ).catch(err => console.error('Failed to send audit completed email to client:', err));
+                    }
 
                 } else if (subStepNum === 4) {
                     // Sub-step 4: NC Report upload — save file to audit record
@@ -1030,6 +1098,17 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         }
                         application.processData.audit.ncReport = filePath;
                         await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true, 'upload_nc_correction', { auditId: application.processData?.audit?.auditId });
+
+                        const company4 = await userModel.findOne({ registrationNo: application.companyId });
+                        if (company4 && company4.email) {
+                            const ncReportUrl = filePath ? `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}${filePath}` : null;
+                            ncFlaggedEmail(
+                                company4.email,
+                                company4.companyName || company4.fullName || 'Valued Client',
+                                application.applicationNumber,
+                                ncReportUrl
+                            ).catch(err => console.error('Failed to send NC Flagged email to client:', err));
+                        }
                     }
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 4);
 
@@ -1074,6 +1153,16 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.ncCorrectionFile = [];
 
                         await sendNotification('NC Corrections Rejected', `Your NC corrections for application (${application.applicationNumber}) were rejected. Reason: ${stepData.rejectReason}. Next Step: Please review the feedback and re-upload your corrections.`, true, 'upload_nc_correction', { auditId: auditId });
+
+                        const companyReject = await userModel.findOne({ registrationNo: application.companyId });
+                        if (companyReject && companyReject.email) {
+                            ncRejectedEmail(
+                                companyReject.email,
+                                companyReject.companyName || companyReject.fullName || 'Valued Client',
+                                application.applicationNumber,
+                                stepData.rejectReason
+                            ).catch(err => console.error('Failed to send NC Rejected email to client:', err));
+                        }
                     } else {
                         if (auditId) {
                             const auditDoc = await auditModel.findById(auditId);
@@ -1090,6 +1179,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.ncClosedAt = new Date();
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 5);
                         await sendNotification('Corrections Resolved', `All NC corrections for your application (${application.applicationNumber}) have been verified as closed. Next Step: Await the submission of the final Audit Report by the Lead Auditor.`, true, 'view_audit', { auditId: auditId });
+
+                        const company5 = await userModel.findOne({ registrationNo: application.companyId });
+                        if (company5 && company5.email) {
+                            ncClosedEmail(
+                                company5.email,
+                                company5.companyName || company5.fullName || 'Valued Client',
+                                application.applicationNumber
+                            ).catch(err => console.error('Failed to send NC Closed email to client:', err));
+                        }
                     }
                 } else if (subStepNum === 6) {
                     // Sub-step 6: Audit Report uploaded — ONLY by admin
@@ -1121,6 +1219,17 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                     application.processStep = Math.max(application.processStep, 7);
                     await sendNotification('Audit Phase Completed', `The audit phase for application (${application.applicationNumber}) holds finalized completion status. Next Step: Your application will now be forwarded to the Shari'a Board for review.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
+
+                    const companyReport = await userModel.findOne({ registrationNo: application.companyId });
+                    if (companyReport && companyReport.email) {
+                        const reportUrl = filePath ? `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}${filePath}` : null;
+                        finalAuditReportUploadedEmail(
+                            companyReport.email,
+                            companyReport.companyName || companyReport.fullName || 'Valued Client',
+                            application.applicationNumber,
+                            reportUrl
+                        ).catch(err => console.error('Failed to send Final Audit Report Uploaded email to client:', err));
+                    }
                 }
                 break;
             }
@@ -1130,6 +1239,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.shariaBoardSentAt = new Date();
                 application.processStep = Math.max(application.processStep, 8);
                 await sendNotification("Shari'a Board Review", `Your application (${application.applicationNumber}) has been sent to the Shari'a Board for final endorsement. Next Step: Await the final decision from the Shari'a Board.`);
+                
+                const companySharia = await userModel.findOne({ registrationNo: application.companyId });
+                if (companySharia && companySharia.email) {
+                    sentToShariaBoardEmail(
+                        companySharia.email,
+                        companySharia.companyName || companySharia.fullName || 'Valued Client',
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send Sharia Board email to client:', err));
+                }
                 break;
             case 8:
                 // Application Successful
@@ -1137,6 +1255,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.certificationApprovedAt = new Date();
                 application.processStep = Math.max(application.processStep, 9);
                 await sendNotification('Application Successful', `Your application (${application.applicationNumber}) is successful for certification. It has been pushed to the final stages. Next Step: Your certificate is now being processed.`);
+
+                const companySuccess = await userModel.findOne({ registrationNo: application.companyId });
+                if (companySuccess && companySuccess.email) {
+                    applicationSuccessfulEmail(
+                        companySuccess.email,
+                        companySuccess.companyName || companySuccess.fullName || 'Valued Client',
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send Application Successful email to client:', err));
+                }
                 break;
             case 9:
                 // Certificate Processing
@@ -1144,6 +1271,17 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.processData.processingStartedAt = new Date();
                 application.processStep = Math.max(application.processStep, 10);
                 await sendNotification('Certificate Processing', `Certificate processing has started for application (${application.applicationNumber}). Next Step: Your official Halal Certificate will be issued soon.`);
+
+                const companyProcessing = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyProcessing && companyProcessing.email) {
+                    sendTrackingUpdateEmail(
+                        companyProcessing.email,
+                        companyProcessing.companyName || companyProcessing.fullName || 'Valued Client',
+                        application.applicationNumber,
+                        'Certificate Processing',
+                        'Certificate processing has started for your application. Your official Halal Certificate will be issued soon. You will receive a notification once it is ready.'
+                    ).catch(err => console.error('Failed to send Certificate Processing email to client:', err));
+                }
                 break;
             case 10: {
                 // Issue Certificate Manual
@@ -1198,6 +1336,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 application.status = 'Issued';
                 application.processStep = 10;
                 await sendNotification('Certificate Issued', `Congratulations! Your Halal Certificate (${finalCertNumber}) has been successfully issued. Next Step: Log into your dashboard to view and download your certificate and Halal Logo.`);
+
+                const companyIssued = await userModel.findOne({ registrationNo: application.companyId });
+                if (companyIssued && companyIssued.email) {
+                    certificateIssuedEmail(
+                        companyIssued.email,
+                        companyIssued.companyName || companyIssued.fullName || 'Valued Client',
+                        application.applicationNumber
+                    ).catch(err => console.error('Failed to send Certificate Issued email to client:', err));
+                }
                 break;
             }
             default:

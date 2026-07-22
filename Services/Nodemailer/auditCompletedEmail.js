@@ -2,22 +2,24 @@ const transporter = require("./transporter");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const sendPaidInvoiceEmail = async (
-  email,
-  companyName,
-  productName,
-  invoiceNumber,
-  amountPaid
-) => {
+/**
+ * Sends an email to the client when their audit session is completed.
+ *
+ * @param {string} email - Client's email address.
+ * @param {string} clientName - Name of the client/company.
+ * @param {string} applicationId - Application ID/Number.
+ */
+const auditCompletedEmail = async (email, clientName, applicationId) => {
   try {
-    console.log("📤 Sending paid invoice email to:", email);
+    console.log("📤 Sending audit completed email to:", email);
 
+    const clientPortalUrl = `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}/track-application/${applicationId}`;
     const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
     const data = await transporter.sendMail({
       from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: `✅ Payment Confirmation — Invoice ${invoiceNumber} Paid Successfully`,
+      subject: `📋 Audit Completed — Application ${applicationId}`,
       html: `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -29,34 +31,40 @@ const sendPaidInvoiceEmail = async (
               <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal & Haram Distinction Development Initiative (HDI)</h2>
             </header>
 
-            <p style="font-size: 16px;">Dear <strong>${companyName}</strong>,</p>
+            <p style="font-size: 16px;">Dear <strong>${clientName}</strong>,</p>
 
             <p>The Halal Team wishes you continued success in your business endeavors.</p>
 
             <p>
-              We are pleased to confirm that we have received your payment 
-              for the invoice related to <strong>${productName}</strong>.
+              We are writing to provide you with an update on your Halal Certification application <strong>${applicationId}</strong>.
             </p>
 
             <div style="background-color: #f0fdf4; border-left: 4px solid #00853b; padding: 16px; margin: 24px 0; border-radius: 4px;">
-              <p style="margin: 0; font-weight: bold; color: #166534; font-size: 17px;">Payment Confirmation</p>
-              <ul style="margin: 8px 0 0 0; color: #15803d; padding-left: 20px; list-style: none;">
-                <li style="margin-bottom: 4px;"><strong>Invoice Number:</strong> ${invoiceNumber}</li>
-                <li style="margin-bottom: 4px;"><strong>Amount Paid:</strong> ${amountPaid}</li>
-                <li><strong>Status:</strong> <span style="font-weight: bold; color: #16a34a;">✓ Paid</span></li>
-              </ul>
+              <p style="margin: 0; font-weight: bold; color: #166534; font-size: 17px;">Audit Completed</p>
+              <p style="margin: 6px 0 0 0; color: #15803d;">
+                Your audit session has been successfully concluded.
+              </p>
+              <p style="margin: 8px 0 0 0; color: #15803d; font-weight: bold;">
+                Next Step: <span style="font-weight: normal;">Our audit team is currently reviewing the audit findings. Please await the upload of your Non-Conformity (NC) Report (if applicable) or your Final Audit Report, which will be made available through your HDI Portal.</span>
+              </p>
             </div>
 
             <p>
-              Thank you for your prompt payment. Your certification process will now proceed accordingly.
+              You can track the progress of your application and view updates by logging into your dashboard.
             </p>
 
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${clientPortalUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
+                View Progress
+              </a>
+            </div>
+
             <p>
-              If you have any questions regarding this invoice or require further assistance, please do not hesitate to contact <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none; font-weight: bold;">support@halalcert.com.ng</a> for support.
+              If you have any questions or require assistance, please do not hesitate to contact <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none; font-weight: bold;">support@halalcert.com.ng</a> for support.
             </p>
 
             <p style="margin-top: 32px; margin-bottom: 0;">
-              Best regards,<br />
+              Kind regards,<br />
               <strong>The Halal Team</strong><br />
               Halal & Haram Distinction Development Initiative (HDI)
             </p>
@@ -72,11 +80,13 @@ const sendPaidInvoiceEmail = async (
       `,
     });
 
-    console.log("📧 Paid invoice email sent!");
+    console.log("📧 Audit completed email sent successfully!");
     console.log("Message ID:", data.messageId);
+    return data;
   } catch (error) {
-    console.error("❌ Failed to send paid invoice email:", error);
+    console.error("❌ Error sending audit completed email:", error);
+    return null;
   }
 };
 
-module.exports = sendPaidInvoiceEmail;
+module.exports = auditCompletedEmail;
