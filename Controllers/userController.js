@@ -44,7 +44,7 @@ const getAllUsers = async (req, res, next) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.error("Error fetching all users:", error.message);
         next(error);
     }
 }
@@ -160,7 +160,7 @@ const createUser = async (req, res, next)=>{
         })
 
     } catch (error) {
-        console.log(error)
+        console.error("Error creating user:", error.message);
         next(error)      
     }
 }
@@ -278,7 +278,7 @@ const deleteUser = async (req, res, next)=>{
             message: "user has been deleted"
         })
     } catch(error) {
-        console.log(error);
+        console.error("Error deleting user:", error.message);
         next(error);
     }
 }
@@ -315,7 +315,7 @@ const deleteAdmin = async (req, res, next)=>{
             message: "admin has been deleted"
         })
     } catch(error) {
-        console.log(error);
+        console.error("Error deleting admin:", error.message);
         next(error);
     }
 }
@@ -369,7 +369,7 @@ const createAdmin = async (req, res, next)=>{
         })
 
     } catch (error) {
-        console.log(error)
+        console.error("Error creating admin:", error.message);
         next(error)      
     }
 }
@@ -406,7 +406,7 @@ const getAllAdmin = async (req, res, next) => {
       users,
     });
   } catch (error) {
-    console.log(error)    
+    console.error("Error fetching all admins:", error.message);
     next(error);
   }
 };

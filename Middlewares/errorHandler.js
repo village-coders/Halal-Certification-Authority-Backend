@@ -27,7 +27,7 @@ const handleCastError = (err) =>{
 }
 
 const errorHandler = (err, req, res, next) => {
-    console.log(err)
+    console.error("API Error:", err.message || err);
     // DUPLICATE ERROR
     if (err.code === 11000) {
         const error = handleDuplicateError(err)

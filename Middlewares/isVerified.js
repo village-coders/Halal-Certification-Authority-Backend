@@ -1,8 +1,6 @@
 // user
 // user.isVerified === true
 const isVerified = (req, res, next)=>{
-    console.log(req);
-    
     if(req?.user.isVerified !== true){
         return res.status(403).json({
             status: "error",

@@ -66,7 +66,6 @@ const sendVerificationEmailToAdmin = async (email, adminFirstName, token) => {
     });
 
     console.log("📧 Admin verification email sent successfully!");
-    console.log("Message ID:", data.messageId);
   } catch (error) {
     console.error("❌ Failed to send admin verification email:");
     console.error(error?.response || error);

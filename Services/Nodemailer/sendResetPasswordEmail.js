@@ -58,7 +58,6 @@ const sendResetPasswordEmail = async (email, name, token, isAdmin = false) => {
             `,
         });
         console.log("📧 Reset email sent successfully!");
-        console.log("Message ID:", data.messageId);
     } catch (error) {
         console.error("Error sending reset password email:", error);
         throw new Error("Failed to send reset password email");

@@ -24,68 +24,47 @@ const initSocket = (server) => {
     const token = socket.handshake.auth.token || 
                   socket.handshake.headers.authorization?.split(' ')[1];
     
-    console.log('Auth attempt with token:', token ? 'Present' : 'Missing');
-    
     if (!token) {
-      console.log('No token provided, allowing connection for non-authenticated events');
       return next();
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = decoded;
-      console.log('User authenticated:', decoded.id, decoded.email);
       next();
     } catch (error) {
-      console.log('Token verification failed:', error.message);
       return next(new Error('Authentication error: Invalid token'));
     }
   });
 
   io.on('connection', (socket) => {
-    console.log('✅ New connection ID:', socket.id);
-    
     if (socket.user) {
-      console.log('User connected:', socket.user.id, socket.user.email);
-      
       // Join user to their personal room (using user ID)
       socket.join(socket.user.id);
-      console.log(`User ${socket.user.id} joined room ${socket.user.id}`);
       
       // Join admin room if user is admin
       if (socket.user.role === 'admin' || socket.user.role === 'super admin') {
         socket.join('admin-room');
-        console.log(`Admin ${socket.user.id} joined admin-room`);
       }
     }
 
-    // Default event for testing connection
-    socket.emit('connected', { 
-      message: 'Connected to server', 
-      userId: socket.user?.id,
-      socketId: socket.id 
+    socket.on('join_conversation', ({ conversationId }) => {
+      if (conversationId) {
+        socket.join(`conversation:${conversationId}`);
+      }
     });
 
-    // Join specific conversation
-    socket.on('join-conversation', (conversationId) => {
-      console.log(`User ${socket.user?.id || 'guest'} joining conversation ${conversationId}`);
-      socket.join(conversationId);
+    socket.on('leave_conversation', ({ conversationId }) => {
+      if (conversationId) {
+        socket.leave(`conversation:${conversationId}`);
+      }
     });
 
-    // Leave conversation
-    socket.on('leave-conversation', (conversationId) => {
-      console.log(`User ${socket.user?.id || 'guest'} leaving conversation ${conversationId}`);
-      socket.leave(conversationId);
-    });
-
-    // Test ping
     socket.on('ping', (data) => {
-      console.log('Ping received:', data);
-      socket.emit('pong', { 
-        message: 'pong', 
-        timestamp: new Date().toISOString(),
-        data 
-      });
+      socket.emit('pong', data);
+    });
+
+    socket.on('disconnect', (reason) => {
     });
 
     // Typing indicator

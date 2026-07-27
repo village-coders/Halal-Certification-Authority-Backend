@@ -68,9 +68,8 @@ const sendVerificationEmail = async (email, userFirstName, token) => {
       `,
     });
     console.log("📧 Email sent successfully!");
-    console.log("Message ID:", data.messageId);
   } catch (error) {
-    console.log(error);    
+    console.error("Error sending verification email:", error.message || error);    
   }
 };
 

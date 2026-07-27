@@ -51,7 +51,7 @@ const signup = async (req, res, next) => {
         })
 
     } catch (error) {
-        console.log(error)
+        console.error("Error signing up user:", error.message);
         next(error)
     }
 }
@@ -184,7 +184,7 @@ const login = async (req, res, next) => {
             user: userData
         });
     } catch (error) {
-        console.log(error);
+        console.error("Error logging in user:", error.message);
         next(error);
     }
 };
@@ -281,7 +281,7 @@ const adminLogin = async (req, res, next) => {
             user: userData
         });
     } catch (error) {
-        console.log(error);
+        console.error("Error asking for reset email:", error.message);
         next(error);
     }
 };
@@ -308,7 +308,7 @@ const updateUserPassword = async (req, res, next) => {
 
         res.status(200).json({ status: 'success', message: 'Password updated successfully' });
     } catch (err) {
-        console.log(err);
+        console.error("Error resetting password:", err.message);
         next(err);
     }
 };
