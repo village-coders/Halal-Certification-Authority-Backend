@@ -4,7 +4,7 @@ dotenv.config();
 
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || "mail.halalcert.com.ng",
-    port: parseInt(process.env.EMAIL_PORT) || 465,
+    port: 465,
     secure: true, // true for 465, false for other ports
     auth: {
         user: process.env.EMAIL_USER,

@@ -171,6 +171,17 @@ const updateUser = async (req, res, next) => {
     const { id } = req.params;
     
     try {
+        const isAdmin = req.user?.role === 'admin' || req.user?.role === 'super admin';
+        const isSelf = req.user?._id?.toString() === id;
+
+        // Only allow admin OR the user themselves to update
+        if (!isAdmin && !isSelf) {
+            return res.status(403).json({
+                status: "error",
+                message: "Unauthorized: you can only update your own profile",
+            });
+        }
+
         let authImagePath = undefined;
 
         if (req.file) {
@@ -188,9 +199,16 @@ const updateUser = async (req, res, next) => {
             }
         }
 
-        const updatedFields = {
-            ...req.body,              // Spread all fields from form
-        };
+        const updatedFields = { ...req.body };
+
+        // Non-admins cannot escalate privileges or change sensitive fields
+        if (!isAdmin) {
+            delete updatedFields.isVerified;
+            delete updatedFields.role;
+            delete updatedFields.registrationNo;
+            delete updatedFields.privileges;
+            delete updatedFields.isBuilder;
+        }
 
         if (authImagePath) {
             updatedFields.authImage = authImagePath;
