@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const userModel = require("../Models/user")
+const ImpersonateLog = require("../Models/impersonateLog")
 const sendVerificationEmail = require("../Services/Nodemailer/sendVerificationEmail")
 const generateRandomString = require("../Utils/generateRandomString")
 const sendVerificationEmailToAdmin = require("../Services/Nodemailer/sendVerificationEmailToAdmin")
@@ -420,12 +421,29 @@ const impersonateClient = async (req, res, next) => {
             image: clientUser.authImage
         };
 
+        // Create impersonation log
+        let logId = null;
+        try {
+            const log = await ImpersonateLog.create({
+                adminId: adminUser._id,
+                adminName: adminUser.fullName,
+                adminEmail: adminUser.email,
+                clientId: clientUser._id,
+                clientName: clientUser.companyName || clientUser.fullName,
+                clientEmail: clientUser.email
+            });
+            logId = log._id;
+        } catch (logErr) {
+            console.error("Failed to create impersonate log:", logErr);
+        }
+
         res.status(200).json({
             status: "success",
             message: `Successfully authenticated as ${clientUser.companyName || clientUser.fullName}`,
             accessToken,
             isVerified: clientUser.isVerified,
-            user: userData
+            user: userData,
+            logId
         });
 
     } catch (error) {

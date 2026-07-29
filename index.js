@@ -26,6 +26,7 @@ const documentRouter = require('./Routes/documentRouter');
 const fileRouter = require('./Routes/fileRouter');
 const branchRouter = require('./Routes/branchRouter');
 const ticketRouter = require('./Routes/ticketRouter');
+const impersonateLogRouter = require('./Routes/impersonateLogRouter');
 
 const errorHandler = require("./Middlewares/errorHandler");
 const startCertificateExpiryCron = require('./Jobs/certificateExpiryCron');
@@ -128,6 +129,7 @@ app.use("/api/documents", documentRouter);
 app.use("/api/files", fileRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/tickets", ticketRouter);
+app.use("/api/impersonate-logs", impersonateLogRouter);
 
 // Catch-all for unknown routes (404)
 // Express 5 compatible middleware
