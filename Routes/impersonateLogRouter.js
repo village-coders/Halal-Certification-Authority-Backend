@@ -6,6 +6,7 @@ const { createLog, endLog, getLogs } = require('../Controllers/impersonateLogCon
 // All routes require authentication
 impersonateLogRouter.post('/', isLoggedIn, createLog);
 impersonateLogRouter.patch('/:id/end', isLoggedIn, endLog);
+impersonateLogRouter.post('/:id/end', isLoggedIn, endLog);
 impersonateLogRouter.get('/', isLoggedIn, getLogs);
 
 module.exports = impersonateLogRouter;

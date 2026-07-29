@@ -58,6 +58,15 @@ const endLog = async (req, res, next) => {
 // Returns all logs, newest first
 const getLogs = async (req, res, next) => {
   try {
+    const user = req.user;
+    const isAuthorized = user?.role === 'super admin' || user?.isBuilder === true;
+    if (!isAuthorized) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Unauthorized access to impersonation logs'
+      });
+    }
+
     const { search, page = 1, limit = 50 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
