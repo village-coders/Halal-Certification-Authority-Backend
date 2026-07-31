@@ -80,8 +80,12 @@ const adminCreateInvoice = async (req, res) => {
                     const application = await applicationModel.findById(applicationId);
                     if (application) appNo = application.applicationNumber;
                 }
+                // Send to ALL company members (parent + sub-users)
+                const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+                const memberEmails = await getCompanyMemberEmails(user.registrationNo);
+                const recipientEmails = memberEmails.length > 0 ? memberEmails : [user.email];
                 invoiceIssuedEmail(
-                    user.email,
+                    recipientEmails,
                     user.companyName || user.fullName || 'Valued Client',
                     appNo
                 ).catch(err => console.error('Failed to send invoice issued email:', err));
@@ -156,7 +160,8 @@ const getInvoices = async (req, res) => {
     try {
         let filter = {};
         if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
-            filter.userId = req.user.id;
+            // Use companyOwnerId so sub-users see the parent company's invoices
+            filter.userId = req.companyOwnerId || req.user.id;
         }
 
         const invoices = await invoiceModel.find(filter)
@@ -181,8 +186,9 @@ const getInvoiceById = async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
 
-        // Ownership check
-        if (req.user.role !== 'admin' && req.user.role !== 'super admin' && invoice.userId.toString() !== req.user.id) {
+        // Ownership check — allow parent company and all its sub-users
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        if (req.user.role !== 'admin' && req.user.role !== 'super admin' && invoice.userId._id.toString() !== companyOwnerId.toString()) {
             return res.status(403).json({ message: 'Access denied' });
         }
 
@@ -283,20 +289,25 @@ const approvePayment = async (req, res) => {
 
         await invoice.save();
 
-        // Send payment confirmed email to client
+        // Send payment confirmed email to ALL company members (parent + sub-users)
         try {
+            const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
             const user = await userModel.findById(invoice.userId);
-            if (user && user.email) {
+            if (user) {
                 let appNo = invoice.invoiceNumber;
                 if (invoice.applicationId) {
                     const application = await applicationModel.findById(invoice.applicationId);
                     if (application) appNo = application.applicationNumber;
                 }
-                paymentReceivedEmail(
-                    user.email,
-                    user.companyName || user.fullName || 'Valued Client',
-                    appNo
-                ).catch(err => console.error('Failed to send payment received email:', err));
+                const memberEmails = await getCompanyMemberEmails(user.registrationNo);
+                const recipientEmails = memberEmails.length > 0 ? memberEmails : (user.email ? [user.email] : []);
+                if (recipientEmails.length > 0) {
+                    paymentReceivedEmail(
+                        recipientEmails,
+                        user.companyName || user.fullName || 'Valued Client',
+                        appNo
+                    ).catch(err => console.error('Failed to send payment received email:', err));
+                }
             }
         } catch (emailErr) {
             console.error('Error fetching user to send payment received email:', emailErr);

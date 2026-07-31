@@ -11,6 +11,8 @@ const sendCertificateIssuedEmail = require('../Services/Nodemailer/certificateIs
 const { sendRenewalReminderEmail } = require('../Services/Nodemailer/sendRenewalReminderEmail');
 const { Readable } = require('stream');
 const { getGridFSBucket } = require('../Config/connectToDb');
+const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+
 
 // Get all certificates
 const checkAndStatusSync = async () => {
@@ -180,7 +182,12 @@ const generateCertificate = async (req, res, next) => {
     application.status = 'Issued';
     await application.save();
 
-    await sendCertificateIssuedEmail(company.email, company.companyName, application.applicationNumber, certificate.certificateNumber)
+    const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+    const memberEmails = await getCompanyMemberEmails(company.registrationNo);
+    const recipientEmails = memberEmails.length > 0 ? memberEmails : (company.email ? [company.email] : []);
+    if (recipientEmails.length > 0) {
+      await sendCertificateIssuedEmail(recipientEmails, company.companyName, application.applicationNumber, certificate.certificateNumber);
+    }
 
     res.status(201).json({
       ...certificate.toObject(),
@@ -597,9 +604,17 @@ const sendRenewalReminder = async (req, res, next) => {
         }
 
         const isExpired = certificate.status === 'Expired';
-        
+
+        // Send reminder to all company members
+        const memberEmails = await getCompanyMemberEmails(certificate.companyId);
+        const recipients = memberEmails.length > 0 ? memberEmails : (company.email ? [company.email] : []);
+
+        if (recipients.length === 0) {
+            return res.status(400).json({ message: 'No valid email recipients found for this company' });
+        }
+
         await sendRenewalReminderEmail(
-            company.email,
+            recipients,
             company.companyName || company.fullName,
             certificate.certificateNumber,
             certificate.expiryDate,

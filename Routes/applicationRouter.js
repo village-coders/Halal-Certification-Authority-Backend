@@ -15,6 +15,7 @@ const {
 } = require('../Controllers/applicationController');
 const isLoggedIn = require('../Middlewares/isLoggedIn');
 const adminOnly = require('../Middlewares/adminOnly');
+const resolveCompanyUser = require('../Middlewares/resolveCompanyUser');
 
 // GET all applications
 applicationRouter.get('/', isLoggedIn, getApplications);
@@ -23,7 +24,7 @@ applicationRouter.get('/', isLoggedIn, getApplications);
 applicationRouter.get('/:id', isLoggedIn, getApplication);
 
 // POST create application  
-applicationRouter.post('/', isLoggedIn, processUpload.fields([
+applicationRouter.post('/', isLoggedIn, resolveCompanyUser, processUpload.fields([
   {name: 'mancapDocument', maxCount: 1},
   {name: 'nafdacDocument', maxCount: 1},
   {name: 'cacDocument', maxCount: 1},

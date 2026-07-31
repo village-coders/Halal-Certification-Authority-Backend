@@ -5,7 +5,8 @@ const createBranch = async (req, res, next) => {
     try {
         const { branchName, address, lga, city, state, country, contactName, contactNumber, positionTitle, webAddress, governmentPlantCode } = req.body;
         
-        const companyId = req.user.id; // Assuming user is authenticated and role is company
+        // Use companyOwnerId so sub-users create branches under the parent company
+        const companyId = req.companyOwnerId || req.user.id;
 
         const newBranch = await branchModel.create({
             companyId,
@@ -34,7 +35,8 @@ const createBranch = async (req, res, next) => {
 
 const getCompanyBranches = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId || req.user.id;
+        // Use companyOwnerId so sub-users see parent company branches
+        const companyId = req.params.companyId || req.companyOwnerId || req.user.id;
         
         const branches = await branchModel.find({ companyId });
 

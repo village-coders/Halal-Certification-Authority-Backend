@@ -48,8 +48,11 @@ const clearAllNotifications = async (req, res) => {
 
 const getUserNotifications = async (req, res) => {
     try {
-        const notifications = await notificationModel.find({ forAdmin: false, companyId: req.user.id }).sort({ createdAt: -1 }).limit(50);
-        const unreadCount = await notificationModel.countDocuments({ isRead: false, forAdmin: false, companyId: req.user.id });
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
+        const notifications = await notificationModel.find({ forAdmin: false, companyId: { $in: targetCompanyIds } }).sort({ createdAt: -1 }).limit(50);
+        const unreadCount = await notificationModel.countDocuments({ isRead: false, forAdmin: false, companyId: { $in: targetCompanyIds } });
 
         res.status(200).json({
             success: true,
@@ -64,7 +67,10 @@ const getUserNotifications = async (req, res) => {
 
 const markUserAsRead = async (req, res) => {
     try {
-        await notificationModel.updateMany({ isRead: false, forAdmin: false, companyId: req.user.id }, { $set: { isRead: true } });
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
+        await notificationModel.updateMany({ isRead: false, forAdmin: false, companyId: { $in: targetCompanyIds } }, { $set: { isRead: true } });
         res.status(200).json({ success: true, message: 'Notifications marked as read' });
     } catch (error) {
         console.error(error);
@@ -78,7 +84,10 @@ const markReadByType = async (req, res) => {
         if (!type) {
             return res.status(400).json({ success: false, message: 'Notification type is required' });
         }
-        await notificationModel.updateMany({ isRead: false, forAdmin: false, companyId: req.user.id, type }, { $set: { isRead: true } });
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
+        await notificationModel.updateMany({ isRead: false, forAdmin: false, companyId: { $in: targetCompanyIds }, type }, { $set: { isRead: true } });
         res.status(200).json({ success: true, message: `Notifications of type ${type} marked as read` });
     } catch (error) {
         console.error(error);
@@ -88,7 +97,10 @@ const markReadByType = async (req, res) => {
 
 const clearUserNotification = async (req, res) => {
     try {
-        await notificationModel.findOneAndDelete({ _id: req.params.id, companyId: req.user.id });
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
+        await notificationModel.findOneAndDelete({ _id: req.params.id, companyId: { $in: targetCompanyIds } });
         res.status(200).json({ success: true, message: 'Notification cleared' });
     } catch (error) {
         console.error(error);
@@ -98,7 +110,10 @@ const clearUserNotification = async (req, res) => {
 
 const clearAllUserNotifications = async (req, res) => {
     try {
-        await notificationModel.deleteMany({ forAdmin: false, companyId: req.user.id });
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
+        await notificationModel.deleteMany({ forAdmin: false, companyId: { $in: targetCompanyIds } });
         res.status(200).json({ success: true, message: 'All notifications cleared' });
     } catch (error) {
         console.error(error);
@@ -108,8 +123,11 @@ const clearAllUserNotifications = async (req, res) => {
 
 const dismissModalNotifications = async (req, res) => {
     try {
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
         await notificationModel.updateMany(
-            { forAdmin: false, companyId: req.user.id, showAsModal: true },
+            { forAdmin: false, companyId: { $in: targetCompanyIds }, showAsModal: true },
             { $set: { showAsModal: false, isRead: true } }
         );
         res.status(200).json({ success: true, message: 'Modal notifications dismissed' });
@@ -122,8 +140,11 @@ const dismissModalNotifications = async (req, res) => {
 const dismissSingleModalNotification = async (req, res) => {
     try {
         const { id } = req.params;
+        const companyOwnerId = req.companyOwnerId || req.user.id;
+        const targetCompanyIds = [req.user.id, companyOwnerId].filter(Boolean);
+
         await notificationModel.findOneAndUpdate(
-            { _id: id, forAdmin: false, companyId: req.user.id },
+            { _id: id, forAdmin: false, companyId: { $in: targetCompanyIds } },
             { $set: { showAsModal: false, isRead: true } }
         );
         res.status(200).json({ success: true, message: 'Notification dismissed' });

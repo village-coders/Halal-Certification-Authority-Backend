@@ -16,9 +16,11 @@ const uploadDocument = async (req, res) => {
             return res.status(400).json({ status: "error", message: "Document title is required." });
         }
 
+        const companyOwnerId = req.companyOwnerId || req.user._id;
+
         // Save to GridFS
         const bucket = getGridFSBucket('documents');
-        const filename = `doc-${req.user._id}-${Date.now()}-${req.file.originalname}`;
+        const filename = `doc-${companyOwnerId}-${Date.now()}-${req.file.originalname}`;
         const uploadStream = bucket.openUploadStream(filename, {
             contentType: req.file.mimetype,
             metadata: {
@@ -39,7 +41,7 @@ const uploadDocument = async (req, res) => {
         });
 
         const newDocument = await Document.create({
-            company: req.user._id,
+            company: companyOwnerId,
             companyId: req.user.registrationNo,
             title,
             fileUrl: `${req.protocol}://${req.get('host')}/api/files/${uploadStream.id}`,
@@ -56,7 +58,11 @@ const uploadDocument = async (req, res) => {
 // 2. Get My Documents (For the App / Client)
 const getMyDocuments = async (req, res) => {
     try {
-        const documents = await Document.find({ company: req.user._id }).sort({ createdAt: -1 });
+        const companyOwnerId = req.companyOwnerId || req.user._id;
+        const filter = req.user.registrationNo
+            ? { $or: [{ company: companyOwnerId }, { companyId: req.user.registrationNo }] }
+            : { company: companyOwnerId };
+        const documents = await Document.find(filter).sort({ createdAt: -1 });
         res.status(200).json({ status: "success", data: documents });
     } catch (error) {
         console.error("Get My Documents Error: ", error);
@@ -87,8 +93,13 @@ const deleteDocument = async (req, res) => {
             return res.status(404).json({ status: "error", message: "Document not found." });
         }
 
-        // Admins can delete any, users can only delete their own
-        if (req.user.role !== "admin" && document.company.toString() !== req.user._id.toString()) {
+        const companyOwnerId = (req.companyOwnerId || req.user._id).toString();
+
+        // Admins can delete any, company owner / sub-users under same company can delete
+        const isOwner = document.company && document.company.toString() === companyOwnerId;
+        const isSameCompany = document.companyId && document.companyId === req.user.registrationNo;
+
+        if (req.user.role !== "admin" && !isOwner && !isSameCompany) {
             return res.status(403).json({ status: "error", message: "You are not authorized to delete this document." });
         }
 

@@ -4,6 +4,8 @@ const User = require('../Models/user');
 const { getIo } = require('../Services/socketService');
 const { uploadToHybridStorage, uploadToGridFS } = require('../Utils/fileUpload');
 const { sendNewTicketAdminEmail, sendTicketReplyEmail } = require('../Services/Nodemailer/sendTicketEmail');
+const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+
 
 // ─────────────────────────────────────────────
 // USER: Create a new support ticket
@@ -36,12 +38,14 @@ exports.createTicket = async (req, res) => {
       }
     }
 
+    const companyOwnerId = req.companyOwnerId || userId;
+
     const ticket = new Ticket({
       title: title.trim(),
       description: description.trim(),
       category: category || 'General',
       priority: priority || 'Medium',
-      company: userId,
+      company: companyOwnerId,
       messages: [{
         sender: userId,
         senderType: 'user',
@@ -92,9 +96,10 @@ exports.createTicket = async (req, res) => {
 exports.getMyTickets = async (req, res) => {
   try {
     const userId = req.user.id;
+    const companyOwnerId = req.companyOwnerId || userId;
     const { status } = req.query;
 
-    const filter = { company: userId };
+    const filter = { company: companyOwnerId };
     if (status && status !== 'all') filter.status = status;
 
     const tickets = await Ticket.find(filter)
@@ -117,6 +122,7 @@ exports.getTicketById = async (req, res) => {
   try {
     const { ticketId } = req.params;
     const userId = req.user.id;
+    const companyOwnerId = (req.companyOwnerId || userId).toString();
     const isAdmin = req.user.role === 'admin' || req.user.role === 'super admin';
 
     const ticket = await Ticket.findById(ticketId)
@@ -128,8 +134,10 @@ exports.getTicketById = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Ticket not found' });
     }
 
-    // Only the owner or admin can view
-    if (!isAdmin && ticket.company._id.toString() !== userId) {
+    const ticketCompanyId = ticket.company._id ? ticket.company._id.toString() : ticket.company.toString();
+
+    // Only the owner, sub-users under same company, or admin can view
+    if (!isAdmin && ticketCompanyId !== userId && ticketCompanyId !== companyOwnerId) {
       return res.status(403).json({ status: 'error', message: 'Access denied' });
     }
 
@@ -148,6 +156,7 @@ exports.replyToTicket = async (req, res) => {
     const { ticketId } = req.params;
     const { content } = req.body;
     const userId = req.user.id;
+    const companyOwnerId = (req.companyOwnerId || userId).toString();
     const files = req.files || [];
 
     if (!content?.trim() && files.length === 0) {
@@ -158,7 +167,8 @@ exports.replyToTicket = async (req, res) => {
     if (!ticket) return res.status(404).json({ status: 'error', message: 'Ticket not found' });
 
     const isAdmin = req.user.role === 'admin' || req.user.role === 'super admin';
-    if (!isAdmin && ticket.company.toString() !== userId) {
+    const ticketCompanyId = ticket.company.toString();
+    if (!isAdmin && ticketCompanyId !== userId && ticketCompanyId !== companyOwnerId) {
       return res.status(403).json({ status: 'error', message: 'Access denied' });
     }
 
@@ -229,7 +239,15 @@ exports.replyToTicket = async (req, res) => {
         });
         await notification.save();
         // Send Email to User
-        await sendTicketReplyEmail(populatedTicket.company.email, populatedTicket.company.fullName, ticket, content, 'Admin (HDI Support)');
+        // Send email to all company members
+        const companyRegistrationNo = populatedTicket.company?.registrationNo;
+        const memberEmails = companyRegistrationNo
+          ? await getCompanyMemberEmails(companyRegistrationNo)
+          : (populatedTicket.company?.email ? [populatedTicket.company.email] : []);
+        const ticketRecipients = memberEmails.length > 0 ? memberEmails : (populatedTicket.company?.email ? [populatedTicket.company.email] : []);
+        if (ticketRecipients.length > 0) {
+          await sendTicketReplyEmail(ticketRecipients, populatedTicket.company.fullName, ticket, content, 'Admin (HDI Support)');
+        }
       } else {
         // Notify admin room via socket
         io.to('admin-room').emit('ticket-reply', { ticketId, message: addedMessage, status: ticket.status });

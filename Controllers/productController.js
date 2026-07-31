@@ -5,6 +5,7 @@ const sendProductApprovalEmail = require("../Services/Nodemailer/productApproval
 const sendProductInvoiceEmail = require("../Services/Nodemailer/productInvoicePaidEmail");
 const sendTrackingUpdateEmail = require("../Services/Nodemailer/trackingUpdateEmail");
 const notificationModel = require('../Models/notification');
+const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
 const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 
@@ -248,7 +249,11 @@ const approveProduct = async (req, res, next) => {
         await products.save()
         await company.save()
 
-        await sendProductApprovalEmail(company.email, company.companyName, products.name)
+        const memberEmails = await getCompanyMemberEmails(company.registrationNo);
+        const recipientEmails = memberEmails.length > 0 ? memberEmails : (company.email ? [company.email] : []);
+        if (recipientEmails.length > 0) {
+            await sendProductApprovalEmail(recipientEmails, company.companyName, products.name);
+        }
 
         try {
             const notification = new notificationModel({
@@ -302,8 +307,11 @@ const markInvoicePaid = async (req, res, next) => {
 
         await products.save()
 
-
-        await sendProductInvoiceEmail(company.email, company.companyName, products.name)
+        const memberEmailsPaid = await getCompanyMemberEmails(company.registrationNo);
+        const recipientEmailsPaid = memberEmailsPaid.length > 0 ? memberEmailsPaid : (company.email ? [company.email] : []);
+        if (recipientEmailsPaid.length > 0) {
+            await sendProductInvoiceEmail(recipientEmailsPaid, company.companyName, products.name);
+        }
 
         res.status(200).json({
             status: "success",
@@ -346,10 +354,12 @@ const rejectProduct = async (req, res, next) => {
         await products.save()
         await company.save()
 
-        // Send email notification
+        // Send email notification to all company members
         if (company.email) {
+            const memberEmailsReject = await getCompanyMemberEmails(company.registrationNo);
+            const recipientEmailsReject = memberEmailsReject.length > 0 ? memberEmailsReject : [company.email];
             sendTrackingUpdateEmail(
-                company.email,
+                recipientEmailsReject,
                 company.companyName || company.fullName || 'Valued Client',
                 'N/A', // Application Number might not be available directly on product without populating
                 'Product Rejected',

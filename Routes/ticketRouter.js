@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ticketController = require('../Controllers/ticketController');
 const isLoggedIn = require('../Middlewares/isLoggedIn');
+const resolveCompanyUser = require('../Middlewares/resolveCompanyUser');
 const multer = require('multer');
 
 const upload = multer({
@@ -12,9 +13,9 @@ const upload = multer({
 router.use(isLoggedIn);
 
 // User routes
-router.post('/', upload.array('attachments', 5), ticketController.createTicket);
-router.get('/my', ticketController.getMyTickets);
-router.get('/:ticketId', ticketController.getTicketById);
+router.post('/', resolveCompanyUser, upload.array('attachments', 5), ticketController.createTicket);
+router.get('/my', resolveCompanyUser, ticketController.getMyTickets);
+router.get('/:ticketId', resolveCompanyUser, ticketController.getTicketById);
 router.post('/:ticketId/reply', upload.array('attachments', 5), ticketController.replyToTicket);
 
 // Admin routes

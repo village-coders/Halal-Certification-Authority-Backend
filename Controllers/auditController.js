@@ -414,7 +414,8 @@ const getAudits = async (req, res) => {
     try {
         let filter = {};
         if (req.user.role !== 'admin' && req.user.role !== 'super admin') {
-            filter.userId = req.user.id;
+            // Use companyOwnerId so sub-users see the parent company's audits
+            filter.userId = req.companyOwnerId || req.user.id;
         }
 
         const audits = await auditModel.find(filter)
@@ -586,11 +587,16 @@ const remindNcCorrection = async (req, res) => {
             }
         }
 
-        // Send dedicated NC correction reminder email
-        await sendNcCorrectionReminderEmail(
-            audit.userId.email,
-            audit.userId.companyName
-        );
+        // Send dedicated NC correction reminder email to all company members
+        const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+        const memberEmails = await getCompanyMemberEmails(audit.userId?.registrationNo);
+        const recipientEmails = memberEmails.length > 0 ? memberEmails : (audit.userId?.email ? [audit.userId.email] : []);
+        if (recipientEmails.length > 0) {
+            await sendNcCorrectionReminderEmail(
+                recipientEmails,
+                audit.userId.companyName || audit.userId.fullName || 'Valued Client'
+            );
+        }
 
         res.json({ message: 'NC Correction reminder sent to client', audit });
     } catch (error) {
