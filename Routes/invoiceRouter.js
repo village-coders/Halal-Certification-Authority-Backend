@@ -6,6 +6,8 @@ const {
     payInvoice,
     uploadProofOfPayment,
     approvePayment,
+    rejectInvoice,
+    resendInvoice,
     getInvoices,
     getInvoiceById
 } = require('../Controllers/invoiceController');
@@ -20,6 +22,8 @@ invoiceRouter.put('/:id/issue', isLoggedIn, adminOnly, issueInvoice);
 invoiceRouter.put('/:id/pay', isLoggedIn, resolveCompanyUser, payInvoice);
 invoiceRouter.post('/:id/upload-proof', isLoggedIn, resolveCompanyUser, upload.single('proof'), uploadProofOfPayment);
 invoiceRouter.put('/:id/approve-payment', isLoggedIn, adminOnly, approvePayment);
+invoiceRouter.put('/:id/reject', isLoggedIn, resolveCompanyUser, rejectInvoice);
+invoiceRouter.put('/:id/resend', isLoggedIn, adminOnly, resendInvoice);
 invoiceRouter.get('/', isLoggedIn, resolveCompanyUser, getInvoices);
 invoiceRouter.get('/:id', isLoggedIn, resolveCompanyUser, getInvoiceById);
 

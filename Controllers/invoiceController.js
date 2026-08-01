@@ -6,6 +6,7 @@ const { uploadToHybridStorage } = require('../Utils/fileUpload');
 const proofOfPaymentUploadedEmail = require('../Services/Nodemailer/proofOfPaymentUploadedEmail');
 const invoiceIssuedEmail = require('../Services/Nodemailer/invoiceIssuedEmail');
 const paymentReceivedEmail = require('../Services/Nodemailer/paymentReceivedEmail');
+const invoiceRejectedEmail = require('../Services/Nodemailer/invoiceRejectedEmail');
 const userModel = require('../Models/user');
 const notificationModel = require('../Models/notification');
 
@@ -319,12 +320,147 @@ const approvePayment = async (req, res) => {
     }
 };
 
+// Reject an invoice (Client only)
+const rejectInvoice = async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+        const invoice = await invoiceModel.findById(id).populate('userId');
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        // Only the invoice owner (or sub-user under same company) can reject
+        const companyOwnerId = (req.companyOwnerId || req.user.id).toString();
+        if (invoice.userId._id.toString() !== companyOwnerId) {
+            return res.status(403).json({ message: 'Access denied. You can only reject your own invoices.' });
+        }
+
+        // Can only reject an invoice that is still 'Issued' (not yet paid or in processing)
+        if (!['Issued', 'Invoice Sent'].includes(invoice.status)) {
+            return res.status(400).json({
+                message: `Invoice cannot be rejected at this stage. Current status: ${invoice.status}`
+            });
+        }
+
+        invoice.status = 'Cancelled';
+        invoice.rejectionReason = reason || 'No reason provided';
+        invoice.rejectedAt = new Date();
+        await invoice.save();
+
+        const companyName = invoice.userId?.companyName || invoice.userId?.fullName || 'Client';
+
+        // Notify all admins in-app
+        try {
+            const adminNotification = new notificationModel({
+                title: 'Invoice Rejected by Client',
+                message: `${companyName} rejected invoice ${invoice.invoiceNumber}. Reason: ${invoice.rejectionReason}`,
+                forAdmin: true,
+                type: 'invoice'
+            });
+            await adminNotification.save();
+
+            // Email all admins
+            const admins = await userModel.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
+            const adminEmails = admins.map(a => a.email).filter(Boolean);
+            if (adminEmails.length > 0) {
+                invoiceRejectedEmail(
+                    adminEmails,
+                    companyName,
+                    invoice.invoiceNumber,
+                    invoice.rejectionReason
+                ).catch(err => console.error('Failed to send invoice rejected email:', err));
+            }
+        } catch (notifErr) {
+            console.error('Failed to notify admins of invoice rejection:', notifErr);
+        }
+
+        res.json({ message: 'Invoice rejected successfully', invoice });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Resend a cancelled invoice (Admin only)
+const resendInvoice = async (req, res) => {
+    const { id } = req.params;
+    const { amount, description } = req.body;
+
+    try {
+        const invoice = await invoiceModel.findById(id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        if (invoice.status !== 'Cancelled') {
+            return res.status(400).json({
+                message: `Only cancelled invoices can be resent. Current status: ${invoice.status}`
+            });
+        }
+
+        // Re-issue the invoice — clear rejection and reset status
+        invoice.status = 'Issued';
+        invoice.rejectionReason = null;
+        invoice.rejectedAt = null;
+        invoice.issuedAt = new Date();
+        if (amount !== undefined) invoice.amount = amount;
+        if (description !== undefined) invoice.description = description;
+
+        await invoice.save();
+
+        // Notify client via in-app notification and email
+        try {
+            const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+            const user = await userModel.findById(invoice.userId);
+            if (user) {
+                // In-app notification
+                const notification = new notificationModel({
+                    title: 'Invoice Re-Issued',
+                    message: `Invoice ${invoice.invoiceNumber} has been re-issued. Please log in to review and pay.`,
+                    forAdmin: false,
+                    type: 'invoice',
+                    companyId: user._id,
+                    showAsModal: true,
+                    actionType: 'view_invoice',
+                    actionData: { invoiceId: invoice._id.toString() }
+                });
+                await notification.save();
+
+                // Email all company members
+                let appNo = invoice.invoiceNumber;
+                if (invoice.applicationId) {
+                    const application = await applicationModel.findById(invoice.applicationId);
+                    if (application) appNo = application.applicationNumber;
+                }
+                const memberEmails = await getCompanyMemberEmails(user.registrationNo);
+                const recipientEmails = memberEmails.length > 0 ? memberEmails : (user.email ? [user.email] : []);
+                if (recipientEmails.length > 0) {
+                    invoiceIssuedEmail(
+                        recipientEmails,
+                        user.companyName || user.fullName || 'Valued Client',
+                        appNo
+                    ).catch(err => console.error('Failed to send resent invoice email:', err));
+                }
+            }
+        } catch (notifErr) {
+            console.error('Failed to send resend notifications:', notifErr);
+        }
+
+        res.json({ message: 'Invoice re-issued successfully', invoice });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     adminCreateInvoice,
     issueInvoice,
     payInvoice,
     uploadProofOfPayment,
     approvePayment,
+    rejectInvoice,
+    resendInvoice,
     getInvoices,
     getInvoiceById
 };
