@@ -399,6 +399,22 @@ const resendInvoice = async (req, res) => {
             });
         }
 
+        // If a new invoice file was uploaded by the admin, save it
+        if (req.file) {
+            const uploadResult = await uploadToHybridStorage(
+                req.file, 
+                'invoices', 
+                'invoiceFiles', 
+                { userId: invoice.userId, invoiceNumber: invoice.invoiceNumber }
+            );
+            
+            if (uploadResult.fileUrl.startsWith('/api/files/')) {
+                invoice.invoiceFile = `${req.protocol}://${req.get('host')}${uploadResult.fileUrl}`;
+            } else {
+                invoice.invoiceFile = uploadResult.fileUrl;
+            }
+        }
+
         // Re-issue the invoice — clear rejection and reset status
         invoice.status = 'Issued';
         invoice.rejectionReason = null;
