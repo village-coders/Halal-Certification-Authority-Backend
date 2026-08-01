@@ -6,15 +6,16 @@ const { createProduct, getMyProducts, deleteMyProduct, getAllProducts, getSingle
 const uploadProductFile = require('../Config/productMulter.js');
 const isLoggedIn = require('../Middlewares/isLoggedIn.js');
 const isAdmin = require('../Middlewares/isAdmin.js');
+const resolveCompanyUser = require('../Middlewares/resolveCompanyUser.js');
 
 // CREATE a product
-productRouter.post("/", isLoggedIn, uploadProductFile.any(), createProduct);
+productRouter.post("/", isLoggedIn, resolveCompanyUser, uploadProductFile.any(), createProduct);
 
 // LIST all products (admin only)
 productRouter.get("/admin-all", getAllProducts);
 
 // LIST my products
-productRouter.get("/", isLoggedIn, getMyProducts);
+productRouter.get("/", isLoggedIn, resolveCompanyUser, getMyProducts);
 
 // GET single product by ID
 productRouter.get("/:id", getSingleProducts);
@@ -25,7 +26,7 @@ productRouter.put("/reject/:id", rejectProduct);
 productRouter.put("/approve/:id", approveProduct);
 
 // DELETE product
-productRouter.delete("/:id", isLoggedIn, deleteMyProduct);
+productRouter.delete("/:id", isLoggedIn, resolveCompanyUser, deleteMyProduct);
 
 
 

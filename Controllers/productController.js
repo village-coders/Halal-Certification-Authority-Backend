@@ -25,7 +25,9 @@ const createProduct = async (req, res, next) => {
         }
 
         const userId = req.user.id;
-        const company = await userModel.findById(userId);
+        // Always use parent company so sub-users' products are stored under the main company
+        const companyOwnerId = req.companyOwnerId || userId;
+        const company = await userModel.findById(companyOwnerId);
         const application = await applicationModel.findById(applicationId);
 
         if (!application) {
@@ -114,7 +116,7 @@ const createProduct = async (req, res, next) => {
             const notification = new notificationModel({
                 title: 'New Products',
                 message: `${company.companyName || company.fullName} added ${productsToInsert.length} new product(s)`,
-                companyId: company._id
+                companyId: company._id  // parent company _id
             });
             await notification.save();
         } catch (err) {
@@ -133,8 +135,9 @@ const createProduct = async (req, res, next) => {
 }
 
 const getMyProducts = async (req, res, next) => {
-    const userId = req.user.id;
-    const company = await userModel.findById(userId)
+    // Use parent company so sub-users see all company products
+    const companyOwnerId = req.companyOwnerId || req.user.id;
+    const company = await userModel.findById(companyOwnerId);
     try {
         const products = await productModel.find({ companyId: company.registrationNo }).populate("applicationId").populate("branchId")
 

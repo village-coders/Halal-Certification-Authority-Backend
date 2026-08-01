@@ -166,7 +166,13 @@ const createApplication = async (req, res) => {
     }
 
     try {
-        const company = await userModel.findById(id)
+        // Always use the parent company's data when a sub-user creates an application
+        const companyId = req.companyOwnerId || id;
+        const company = await userModel.findById(companyId);
+
+        if (!company) {
+            return res.status(404).json({ message: 'Company account not found.' });
+        }
 
         // Verify branch exists and belongs to company (use companyOwnerId for sub-users)
         const branchOwner = req.companyOwnerId || id;
