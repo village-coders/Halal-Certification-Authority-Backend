@@ -17,11 +17,14 @@ const applicationSubmittedEmail = async (email, companyName, applicationNumber, 
     const clientPortalUrl = `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}/track-application/${applicationNumber}`;
     const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
     const isRenewal = category === "Renewal Application";
+    const isAdOn = category === "Ad-On Application" || category === "Ad-On";
     const subject = isRenewal
       ? `✅ Renewal Application Successfully Submitted — ${applicationNumber}`
+      : isAdOn
+      ? `✅ Ad-On Application Successfully Submitted — ${applicationNumber}`
       : `✅ Application Successfully Submitted — ${applicationNumber}`;
 
-    const badgeLabel = isRenewal ? "Renewal Application" : "New Application";
+    const badgeLabel = isRenewal ? "Renewal Application" : isAdOn ? "Ad-On Application" : "New Application";
 
     const data = await transporter.sendMail({
       from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,

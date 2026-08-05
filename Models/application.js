@@ -44,7 +44,7 @@ const applicationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["New", "Renewal"],
+    enum: ["New", "Renewal", "Ad-On"],
     default: "New"
   },
   reason: {

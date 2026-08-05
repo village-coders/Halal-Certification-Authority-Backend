@@ -181,22 +181,38 @@ const createApplication = async (req, res) => {
             return res.status(400).json({ message: 'Invalid branch selected' });
         }
 
-        // For renewal applications, skip duplicate check
-        if (category !== 'Renewal Application') {
-            // Check if there is an application for the product at this branch
-            const existingApplication = await applicationModel.findOne({
-                companyId: company.registrationNo,
+        // Check application eligibility & duplicate in-progress applications
+        if (category === 'Ad-On Application' || category === 'Ad-On') {
+            // 1. Verify that this branch has an already certified application or active certificate
+            const hasCertifiedApp = await applicationModel.findOne({
                 branchId: branchId,
-                category: { $ne: 'Renewal Application' },
-                status: { $nin: ["Rejected", "Expired"] } // Allow new app if previous was rejected or expired
+                status: "Issued"
+            });
+            const hasCertificate = await certificateModel.findOne({
+                branchId: branchId,
+                status: { $in: ["Active", "Expiring Soon", "Expired"] }
             });
 
-            if (existingApplication) {
+            if (!hasCertifiedApp && !hasCertificate) {
                 return res.status(400).json({
-                    message: `An active application already exists for this branch (${branch.branchName}).`
+                    message: `This site (${branch.branchName}) does not have an initial certified application. Only sites with an already certified application can apply for an Ad-On application.`
                 });
             }
-        } else {
+
+            // 2. Check if an active Ad-On application is already in progress for this branch
+            const existingAdOn = await applicationModel.findOne({
+                companyId: company.registrationNo,
+                branchId: branchId,
+                category: "Ad-On Application",
+                status: { $nin: ["Issued", "Rejected", "Expired"] }
+            });
+
+            if (existingAdOn) {
+                return res.status(400).json({
+                    message: `An active Ad-On application is already in progress for this branch (${branch.branchName}).`
+                });
+            }
+        } else if (category === 'Renewal Application') {
             // For renewals, check if one is already in progress for this branch
             const existingRenewal = await applicationModel.findOne({
                 companyId: company.registrationNo,
@@ -210,18 +226,37 @@ const createApplication = async (req, res) => {
                     message: `An active renewal application is already in progress for this branch (${branch.branchName}).`
                 });
             }
+        } else {
+            // Check if there is an active initial application for this branch
+            const existingApplication = await applicationModel.findOne({
+                companyId: company.registrationNo,
+                branchId: branchId,
+                category: { $nin: ['Renewal Application', 'Ad-On Application', 'Ad-On'] },
+                status: { $nin: ["Rejected", "Expired"] }
+            });
+
+            if (existingApplication) {
+                return res.status(400).json({
+                    message: `An active initial application already exists for this branch (${branch.branchName}).`
+                });
+            }
         }
 
-        // Generate application number
+        // Generate application number & type
         const timestamp = Date.now().toString().slice(-8);
         const prefix = company.companyName?.slice(0, 2).toUpperCase();
 
-        // Use different prefix for renewals
         let applicationNumber;
+        let appType = "New";
         if (category === 'Renewal Application') {
             applicationNumber = `${prefix}REN-${timestamp}`;
+            appType = "Renewal";
+        } else if (category === 'Ad-On Application' || category === 'Ad-On') {
+            applicationNumber = `${prefix}ADD-${timestamp}`;
+            appType = "Ad-On";
         } else {
             applicationNumber = `${prefix}-APP-${timestamp}`;
+            appType = "New";
         }
 
         // Process foodSafetyPrograms if it's a string
@@ -264,6 +299,7 @@ const createApplication = async (req, res) => {
 
         const applicationData = {
             ...req.body,
+            type: appType,
             applicationNumber,
             companyId: company.registrationNo,
             company: company._id,
