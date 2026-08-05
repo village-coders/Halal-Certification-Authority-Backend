@@ -390,8 +390,8 @@ const impersonateClient = async (req, res, next) => {
             return res.status(404).json({ status: "error", message: "Admin user not found" });
         }
 
-        // Only allow if user is admin, super admin, or has isBuilder: true
-        const allowed = adminUser.role === 'super admin' || adminUser.isBuilder === true;
+        // Allow if user is admin or super admin
+        const allowed = adminUser.role === 'super admin' || adminUser.role === 'admin';
         if (!allowed) {
             return res.status(403).json({ status: "error", message: "Unauthorized to impersonate clients" });
         }
