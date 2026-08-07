@@ -296,6 +296,7 @@ const createApplication = async (req, res) => {
             : [];
         const packagingPlant = safeParse(req.body.packagingPlant);
         const authorizedBy = safeParse(req.body.authorizedBy);
+        const primaryContact = safeParse(req.body.primaryContact);
 
         const applicationData = {
             ...req.body,
@@ -309,10 +310,23 @@ const createApplication = async (req, res) => {
             manufacturingFacility,
             additionalFacilities,
             packagingPlant,
-            authorizedBy
+            authorizedBy,
+            primaryContact
         };
 
         // Validate required fields
+        if (!applicationData.primaryContact || !applicationData.primaryContact.name || !applicationData.primaryContact.email || !applicationData.primaryContact.positionTitle || !applicationData.primaryContact.telephoneNo) {
+            return res.status(400).json({
+                message: 'All Primary Contact fields (Name, Email, Position/Title, and Phone Number) are required and compulsory'
+            });
+        }
+
+        if (!req.files || !req.files['rawMaterialsDocument'] || req.files['rawMaterialsDocument'].length === 0) {
+            return res.status(400).json({
+                message: 'List of raw materials document is compulsory'
+            });
+        }
+
         if (!applicationData.hasAppliedBefore) {
             return res.status(400).json({
                 message: 'Has the company ever applied for Halal certification previously? is required'
@@ -481,7 +495,7 @@ const updateApplication = async (req, res) => {
         }
 
         // Parse JSON fields if they're strings safely
-        ['manufacturingFacility', 'additionalFacilities', 'packagingPlant', 'authorizedBy'].forEach(field => {
+        ['manufacturingFacility', 'additionalFacilities', 'packagingPlant', 'authorizedBy', 'primaryContact'].forEach(field => {
             if (updateData[field] && typeof updateData[field] === 'string') {
                 try {
                     updateData[field] = JSON.parse(updateData[field]);
@@ -491,6 +505,12 @@ const updateApplication = async (req, res) => {
                 }
             }
         });
+
+        if (updateData.primaryContact && (!updateData.primaryContact.name || !updateData.primaryContact.email || !updateData.primaryContact.positionTitle || !updateData.primaryContact.telephoneNo)) {
+            return res.status(400).json({
+                message: 'All Primary Contact fields (Name, Email, Position/Title, and Phone Number) must be populated'
+            });
+        }
 
         // Clear agency fields if answer is "no"
         if (updateData.hasAppliedBefore === 'no') {

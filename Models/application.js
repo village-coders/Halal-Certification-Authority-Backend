@@ -221,6 +221,14 @@ const applicationSchema = new mongoose.Schema({
     positionTitle: { type: String, default: '' }
   },
 
+  // Primary Contact
+  primaryContact: {
+    name: { type: String, default: '' },
+    email: { type: String, default: '' },
+    positionTitle: { type: String, default: '' },
+    telephoneNo: { type: String, default: '' }
+  },
+
   // Application processing tracking
   processStep: {
     type: Number,
