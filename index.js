@@ -130,6 +130,8 @@ app.use("/api/files", fileRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/tickets", ticketRouter);
 app.use("/api/impersonate-logs", impersonateLogRouter);
+const settingRouter = require('./Routes/settingRouter');
+app.use("/api/settings", settingRouter);
 
 // Catch-all for unknown routes (404)
 // Express 5 compatible middleware
@@ -163,7 +165,7 @@ const PORT = process.env.PORT || 333;
 const startServer = async () => {
   try {
     await connectToDb();
-    
+
     // Automatically set isBuilder: true for test@gmail.com
     // try {
     //   const UserModel = require("./Models/user");
