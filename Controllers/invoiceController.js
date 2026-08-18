@@ -4,6 +4,7 @@ const { getGridFSBucket } = require('../Config/connectToDb');
 const { Readable } = require('stream');
 const { uploadToHybridStorage } = require('../Utils/fileUpload');
 const proofOfPaymentUploadedEmail = require('../Services/Nodemailer/proofOfPaymentUploadedEmail');
+const proofOfPaymentRejectedEmail = require('../Services/Nodemailer/proofOfPaymentRejectedEmail');
 const invoiceIssuedEmail = require('../Services/Nodemailer/invoiceIssuedEmail');
 const paymentReceivedEmail = require('../Services/Nodemailer/paymentReceivedEmail');
 const invoiceRejectedEmail = require('../Services/Nodemailer/invoiceRejectedEmail');
@@ -240,6 +241,8 @@ const uploadProofOfPayment = async (req, res) => {
         invoice.status = 'Processing';
         invoice.paymentType = 'Offline';
         invoice.proofOfPayment = `${req.protocol}://${req.get('host')}/api/files/${fileId}`;
+        invoice.proofRejectionReason = null;
+        invoice.proofRejectedAt = null;
 
         await invoice.save();
 
@@ -315,6 +318,78 @@ const approvePayment = async (req, res) => {
         }
 
         res.json({ message: 'Payment approved and status updated to Paid', invoice });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Reject proof of payment (Admin / Accountant)
+const rejectProofOfPayment = async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ message: 'Please provide a reason for rejecting the proof of payment' });
+        }
+
+        const invoice = await invoiceModel.findById(id).populate('userId');
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        if (invoice.status === 'Paid') {
+            return res.status(400).json({ message: 'Cannot reject proof for an already paid invoice' });
+        }
+
+        invoice.status = 'Proof Rejected';
+        invoice.proofRejectionReason = reason.trim();
+        invoice.proofRejectedAt = new Date();
+
+        await invoice.save();
+
+        const user = invoice.userId;
+        const companyName = user?.companyName || user?.fullName || 'Client';
+
+        // Notify client via in-app notification
+        try {
+            if (user) {
+                const notification = new notificationModel({
+                    title: 'Proof of Payment Rejected',
+                    message: `Proof of payment for invoice ${invoice.invoiceNumber} was rejected: ${invoice.proofRejectionReason}. Please review and re-upload.`,
+                    forAdmin: false,
+                    type: 'invoice',
+                    companyId: user._id,
+                    showAsModal: true,
+                    actionType: 'view_invoice',
+                    actionData: { invoiceId: invoice._id.toString() }
+                });
+                await notification.save();
+            }
+        } catch (notifErr) {
+            console.error('Failed to create in-app notification for rejected proof:', notifErr);
+        }
+
+        // Email all company members
+        try {
+            if (user) {
+                const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+                const memberEmails = await getCompanyMemberEmails(user.registrationNo);
+                const recipientEmails = memberEmails.length > 0 ? memberEmails : (user.email ? [user.email] : []);
+                if (recipientEmails.length > 0) {
+                    proofOfPaymentRejectedEmail(
+                        recipientEmails,
+                        companyName,
+                        invoice.invoiceNumber,
+                        invoice.proofRejectionReason
+                    ).catch(err => console.error('Failed to send proof of payment rejected email:', err));
+                }
+            }
+        } catch (emailErr) {
+            console.error('Failed to send proof rejection email:', emailErr);
+        }
+
+        res.json({ message: 'Proof of payment rejected successfully', invoice });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -475,6 +550,7 @@ module.exports = {
     payInvoice,
     uploadProofOfPayment,
     approvePayment,
+    rejectProofOfPayment,
     rejectInvoice,
     resendInvoice,
     getInvoices,

@@ -6,6 +6,7 @@ const {
     payInvoice,
     uploadProofOfPayment,
     approvePayment,
+    rejectProofOfPayment,
     rejectInvoice,
     resendInvoice,
     getInvoices,
@@ -22,6 +23,7 @@ invoiceRouter.put('/:id/issue', isLoggedIn, adminOnly, issueInvoice);
 invoiceRouter.put('/:id/pay', isLoggedIn, resolveCompanyUser, payInvoice);
 invoiceRouter.post('/:id/upload-proof', isLoggedIn, resolveCompanyUser, upload.single('proof'), uploadProofOfPayment);
 invoiceRouter.put('/:id/approve-payment', isLoggedIn, adminOnly, approvePayment);
+invoiceRouter.put('/:id/reject-proof', isLoggedIn, adminOnly, rejectProofOfPayment);
 invoiceRouter.put('/:id/reject', isLoggedIn, resolveCompanyUser, rejectInvoice);
 invoiceRouter.put('/:id/resend', isLoggedIn, adminOnly, upload.single('invoiceFile'), resendInvoice);
 invoiceRouter.get('/', isLoggedIn, resolveCompanyUser, getInvoices);

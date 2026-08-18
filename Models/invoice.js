@@ -31,7 +31,7 @@ const invoiceSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Requested', 'Issued', 'Processing', 'Paid', 'Proof of Payment Approved', 'Cancelled', 'Invoice Sent', 'Payment Confirmed'],
+        enum: ['Requested', 'Issued', 'Processing', 'Paid', 'Proof of Payment Approved', 'Cancelled', 'Invoice Sent', 'Payment Confirmed', 'Proof Rejected'],
         default: 'Issued'
     },
     rejectionReason: {
@@ -39,6 +39,14 @@ const invoiceSchema = new mongoose.Schema({
         default: null
     },
     rejectedAt: {
+        type: Date,
+        default: null
+    },
+    proofRejectionReason: {
+        type: String,
+        default: null
+    },
+    proofRejectedAt: {
         type: Date,
         default: null
     },
