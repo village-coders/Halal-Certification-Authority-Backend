@@ -20,9 +20,10 @@ const checkAndStatusSync = async () => {
         const now = new Date();
         const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-        // Find all certificates that are not already 'Expired' or 'Revoked'
+        // Find all certificates that are not already 'Expired', 'Revoked', or 'Inactive'
+        // Inactive = deliberately retired (e.g. superseded by a renewed certificate) — must not be auto-changed
         const certificates = await certificateModel.find({
-            status: { $nin: ['Expired', 'Revoked'] },
+            status: { $nin: ['Expired', 'Revoked', 'Inactive'] },
         }).sort({ createdAt: -1 });
 
         for (const cert of certificates) {

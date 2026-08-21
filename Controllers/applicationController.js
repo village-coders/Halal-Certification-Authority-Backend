@@ -213,18 +213,56 @@ const createApplication = async (req, res) => {
                 });
             }
         } else if (category === 'Renewal Application') {
-            // For renewals, check if one is already in progress for this branch
-            const existingRenewal = await applicationModel.findOne({
-                companyId: company.registrationNo,
-                branchId: branchId,
-                category: "Renewal Application",
-                status: { $nin: ["Issued", "Rejected", "Expired"] }
-            });
+            const { renewedCertificateId, renewedApplicationId } = req.body;
 
-            if (existingRenewal) {
-                return res.status(400).json({
-                    message: `An active renewal application is already in progress for this branch (${branch.branchName}).`
+            if (renewedCertificateId) {
+                const existingRenewal = await applicationModel.findOne({
+                    companyId: company.registrationNo,
+                    renewedCertificateId: renewedCertificateId,
+                    category: "Renewal Application",
+                    status: { $nin: ["Issued", "Rejected", "Expired"] }
                 });
+
+                if (existingRenewal) {
+                    return res.status(400).json({
+                        message: `An active renewal application is already in progress for this certificate.`
+                    });
+                }
+            } else if (renewedApplicationId) {
+                const existingRenewal = await applicationModel.findOne({
+                    companyId: company.registrationNo,
+                    renewedApplicationId: renewedApplicationId,
+                    category: "Renewal Application",
+                    status: { $nin: ["Issued", "Rejected", "Expired"] }
+                });
+
+                if (existingRenewal) {
+                    return res.status(400).json({
+                        message: `An active renewal application is already in progress for this application.`
+                    });
+                }
+            } else {
+                const totalBranchCerts = await certificateModel.countDocuments({
+                    companyId: company.registrationNo,
+                    branchId: branchId,
+                    status: { $in: ["Active", "Expiring Soon", "Expired"] }
+                });
+                const activeRenewals = await applicationModel.countDocuments({
+                    companyId: company.registrationNo,
+                    branchId: branchId,
+                    category: "Renewal Application",
+                    status: { $nin: ["Issued", "Rejected", "Expired"] }
+                });
+
+                if (totalBranchCerts > 0 && activeRenewals >= totalBranchCerts) {
+                    return res.status(400).json({
+                        message: `All certificates for this branch (${branch.branchName}) already have active renewal applications in progress.`
+                    });
+                } else if (totalBranchCerts === 0 && activeRenewals > 0) {
+                    return res.status(400).json({
+                        message: `An active renewal application is already in progress for this branch (${branch.branchName}).`
+                    });
+                }
             }
         } else {
             // Check if there is an active initial application for this branch
@@ -311,7 +349,9 @@ const createApplication = async (req, res) => {
             additionalFacilities,
             packagingPlant,
             authorizedBy,
-            primaryContact
+            primaryContact,
+            renewedCertificateId: req.body.renewedCertificateId || undefined,
+            renewedApplicationId: req.body.renewedApplicationId || undefined
         };
 
         // Validate required fields
@@ -1163,14 +1203,15 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
 
                 } else if (subStepNum === 3) {
-                    // Sub-step 3: Audited — mark audit as Accepted/Completed start
+                    // Sub-step 3: Audited — mark audit as Accepted/Completed
                     const auditId = application.processData?.audit?.auditId;
                     if (auditId) {
                         await auditModel.findByIdAndUpdate(auditId, { status: 'Audited' });
                     }
                     application.processData.audit.auditedAt = new Date();
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 3);
-                    await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for the Non-Conformity (NC) report or the Final Audit report to be uploaded.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
+                    application.processStep = Math.max(application.processStep, 7);
+                    await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for Non-Conformity (NC) review or Shari'a Logsheet initiation.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
 
                     const company3 = await userModel.findOne({ registrationNo: application.companyId });
                     if (company3) {
@@ -1282,7 +1323,8 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.status = 'NC Closed';
                         application.processData.audit.ncClosedAt = new Date();
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 5);
-                        await sendNotification('Corrections Resolved', `All NC corrections for your application (${application.applicationNumber}) have been verified as closed. Next Step: Await the submission of the final Audit Report by the Lead Auditor.`, true, 'view_audit', { auditId: auditId });
+                        application.processStep = Math.max(application.processStep, 7);
+                        await sendNotification('Corrections Resolved', `All NC corrections for your application (${application.applicationNumber}) have been verified as closed. Next Step: Your application will proceed to Shari'a Logsheet initiation.`, true, 'view_audit', { auditId: auditId });
 
                         const company5 = await userModel.findOne({ registrationNo: application.companyId });
                         if (company5) {
@@ -1444,6 +1486,38 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     { applicationId: id },
                     { $set: { status: 'approved' } }
                 );
+
+                // --- Retire the old (renewed) certificate ---
+                // When this application is a renewal, mark the source certificate as Inactive
+                // so it no longer appears in the client's renewable certificates list.
+                try {
+                    if (application.renewedCertificateId) {
+                        // Direct link to the specific old certificate
+                        await certificateModel.findByIdAndUpdate(
+                            application.renewedCertificateId,
+                            { $set: { status: 'Inactive' } }
+                        );
+                    } else if (application.renewedApplicationId) {
+                        // Find the certificate associated with the source application
+                        await certificateModel.updateMany(
+                            { applicationId: application.renewedApplicationId },
+                            { $set: { status: 'Inactive' } }
+                        );
+                    } else if (application.category === 'Renewal Application') {
+                        // Fallback: retire any Expired or Expiring Soon certs on this branch
+                        await certificateModel.updateMany(
+                            {
+                                companyId: application.companyId,
+                                branchId: application.branchId,
+                                status: { $in: ['Expired', 'Expiring Soon', 'Active'] },
+                                _id: { $ne: certificate._id }
+                            },
+                            { $set: { status: 'Inactive' } }
+                        );
+                    }
+                } catch (retireErr) {
+                    console.error('Failed to retire old certificate on renewal issuance:', retireErr);
+                }
 
                 application.processData.certificateFiles = finalFiles;
                 application.processData.certificateFileIds = finalFileIds;

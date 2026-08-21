@@ -47,6 +47,16 @@ const applicationSchema = new mongoose.Schema({
     enum: ["New", "Renewal", "Ad-On"],
     default: "New"
   },
+  renewedCertificateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "certificate",
+    required: false
+  },
+  renewedApplicationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "application",
+    required: false
+  },
   reason: {
     type: String,
   },
