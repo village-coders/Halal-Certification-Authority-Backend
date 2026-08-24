@@ -45,7 +45,7 @@ async function addCertificate() {
         // ── 1. Find the branch by ID prefix ───────────────────────────────────
         console.log(`🔍 Searching for branch with ID starting with: ${CONFIG.branchIdPrefix}`);
         const allBranches = await Branch.find({});
-        const branch = allBranches.find(b => b._id.toString().startsWith(CONFIG.branchIdPrefix));
+        const branch = allBranches.find(b => b._id.toString().endsWith(CONFIG.branchIdPrefix));
 
         if (!branch) {
             console.error(`❌ No branch found with ID prefix "${CONFIG.branchIdPrefix}".`);
