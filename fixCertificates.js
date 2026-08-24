@@ -29,7 +29,7 @@ const User = require('./Models/user');
 
 async function addCertificate() {
     try {
-        const mongoUri = process.env.MONGO_URI || process.env.Mongo_Url;
+        const mongoUri = process.env.MONGO_URI || process.env.Mongo_Uri;
         if (!mongoUri) {
             console.error('❌ No MongoDB URI found. Check your .env file for MONGO_URI or Mongo_Url.');
             process.exit(1);
