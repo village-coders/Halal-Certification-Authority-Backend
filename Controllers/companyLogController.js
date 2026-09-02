@@ -9,8 +9,7 @@ const updateCompanyDetails = async (req, res, next) => {
     // Check privilege
     const hasPrivilege =
       admin.role === 'super admin' ||
-      admin.privileges?.includes('Manage Companies') ||
-      admin.privileges?.includes('Company Manager');
+      admin.privileges?.includes('Manage Companies');
 
     if (!hasPrivilege) {
       return res.status(403).json({
