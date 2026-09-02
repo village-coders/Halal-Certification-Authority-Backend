@@ -27,6 +27,7 @@ const fileRouter = require('./Routes/fileRouter');
 const branchRouter = require('./Routes/branchRouter');
 const ticketRouter = require('./Routes/ticketRouter');
 const impersonateLogRouter = require('./Routes/impersonateLogRouter');
+const companyLogRouter = require('./Routes/companyLogRouter');
 
 const errorHandler = require("./Middlewares/errorHandler");
 const startCertificateExpiryCron = require('./Jobs/certificateExpiryCron');
@@ -130,6 +131,7 @@ app.use("/api/files", fileRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/tickets", ticketRouter);
 app.use("/api/impersonate-logs", impersonateLogRouter);
+app.use("/api/company-logs", companyLogRouter);
 const settingRouter = require('./Routes/settingRouter');
 app.use("/api/settings", settingRouter);
 
