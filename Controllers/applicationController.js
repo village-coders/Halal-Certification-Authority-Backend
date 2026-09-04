@@ -150,6 +150,12 @@ const getApplication = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. You do not own this application.' });
         }
 
+        // Auto-heal legacy premature advance to step 7 if audit session is still ongoing
+        if (application.processStep === 7 && (application.processData?.audit?.subStep || 0) < 5 && !application.processData?.shariaBoardSentAt) {
+            application.processStep = 6;
+            await applicationModel.findByIdAndUpdate(application._id, { processStep: 6 });
+        }
+
         res.json(application);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -1210,7 +1216,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                     application.processData.audit.auditedAt = new Date();
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 3);
-                    application.processStep = Math.max(application.processStep, 7);
+                    application.processStep = Math.max(application.processStep, 6);
                     await sendNotification('Audited', `Your audit session for application (${application.applicationNumber}) has been marked as concluded. Next Step: Please wait for Non-Conformity (NC) review or Shari'a Logsheet initiation.`, true, 'view_audit', { auditId: application.processData?.audit?.auditId });
 
                     const company3 = await userModel.findOne({ registrationNo: application.companyId });
@@ -1236,6 +1242,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             });
                         }
                         application.processData.audit.ncReport = filePath;
+                        application.processData.audit.ncReportFile = filePath;
                         await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true, 'upload_nc_correction', { auditId: application.processData?.audit?.auditId });
 
                         const company4 = await userModel.findOne({ registrationNo: application.companyId });
@@ -1253,6 +1260,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         }
                     }
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 4);
+                    application.processStep = Math.max(application.processStep, 6);
 
                 } else if (subStepNum === 5) {
                     // Sub-step 5: NC Report Closed — resolve all corrections or reject them

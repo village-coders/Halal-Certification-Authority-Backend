@@ -8,14 +8,14 @@ const { Readable } = require('stream');
 
 // Create Logsheet (Step 8 Initiator)
 const createLogsheet = async (req, res) => {
-    const { applicationId, companyName, companyEmail, auditReport } = req.body;
+    const { applicationId, companyName, companyEmail, auditReport, existingAuditReport, existingAdditionalDocuments } = req.body;
 
     try {
         const application = await applicationModel.findById(applicationId);
         if (!application) return res.status(404).json({ message: 'Application not found' });
 
 
-        let auditReportUrl = auditReport; // Fallback if no file
+        let auditReportUrl = existingAuditReport || auditReport || null; // Pre-filled or string fallback
         let labResultUrl = null;
 
         if (req.files && req.files['auditReport'] && req.files['auditReport'][0]) {
@@ -39,6 +39,10 @@ const createLogsheet = async (req, res) => {
                         resolve();
                     });
             });
+        }
+
+        if (!auditReportUrl) {
+            return res.status(400).json({ message: 'Audit report is required' });
         }
 
         if (req.files && req.files['labResult'] && req.files['labResult'][0]) {
@@ -65,8 +69,22 @@ const createLogsheet = async (req, res) => {
             });
         }
 
-        // Handle additional documents (up to many)
+        // Handle additional documents (both pre-existing corrective actions and newly uploaded files)
         const additionalDocumentUrls = [];
+        if (existingAdditionalDocuments) {
+            let existingDocs = existingAdditionalDocuments;
+            if (typeof existingDocs === 'string') {
+                try {
+                    existingDocs = JSON.parse(existingDocs);
+                } catch {
+                    existingDocs = [existingDocs];
+                }
+            }
+            if (Array.isArray(existingDocs)) {
+                additionalDocumentUrls.push(...existingDocs.filter(Boolean));
+            }
+        }
+
         if (req.files && req.files['additionalDocuments'] && req.files['additionalDocuments'].length > 0) {
             const bucket = getGridFSBucket('auditReports');
             for (const file of req.files['additionalDocuments']) {
