@@ -1063,6 +1063,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     if (!company) throw new Error('Company not found for this application');
 
                     let audit = await auditModel.findOne({ applicationId: id, status: { $ne: 'Completed' } });
+                    if (!audit && application.processData?.audit?.auditId) {
+                        audit = await auditModel.findById(application.processData.audit.auditId);
+                    }
 
                     if (auditInfo.action === 'propose') {
                         // Phase 1: Propose 2 audit periods (date + fromTime + toDate)
@@ -1134,12 +1137,101 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
 
                         await sendNotification('Audit Date Concluded', `Audit date has been finalized as ${new Date(auditInfo.date).toLocaleDateString()} at ${auditInfo.time}. Next Step: Prepare your facility for the upcoming audit session.`, true, 'view_audit', { auditId: audit._id.toString() });
 
+                    } else if (auditInfo.action === 'refix') {
+                        // Admin with "Refix Audit Date" privilege or Super Admin refixes the date
+                        const canRefix = req.user.role === 'super admin' || (req.user.privileges && req.user.privileges.some(p => p.toLowerCase() === 'refix audit date'));
+                        if (!canRefix) {
+                            return res.status(403).json({ message: 'Unauthorized. You do not have the "Refix Audit Date" privilege.' });
+                        }
+
+                        const isAlreadyAudited = Boolean(
+                            application.processData?.audit?.auditedAt ||
+                            (application.processData?.audit?.subStep || 0) >= 3 ||
+                            application.processData?.audit?.status === 'Audited'
+                        );
+                        if (isAlreadyAudited) {
+                            return res.status(400).json({ message: 'The audit session has already been marked as audited. The audit date cannot be refixed.' });
+                        }
+
+                        if (!audit) throw new Error('No audit record found for this application');
+                        if (!auditInfo.date || !auditInfo.time) throw new Error('Date and time are required to refix audit date');
+
+                        const newDate = new Date(auditInfo.date);
+                        const newToDate = auditInfo.toDate ? new Date(auditInfo.toDate) : newDate;
+
+                        audit.scheduledDate = newDate;
+                        audit.scheduledTime = auditInfo.time;
+                        audit.scheduledToDate = newToDate;
+                        if (audit.auditors && audit.auditors.length > 0) {
+                            audit.status = 'Scheduled';
+                        } else {
+                            audit.status = 'Date Concluded';
+                        }
+                        await audit.save();
+
+                        application.processData.audit.scheduledDate = newDate;
+                        application.processData.audit.scheduledTime = auditInfo.time;
+                        application.processData.audit.scheduledToDate = newToDate;
+                        application.processData.audit.status = audit.status;
+                        application.processData.audit.refixedAt = new Date();
+                        application.processData.audit.refixedBy = req.user.fullName || req.user.name || 'Admin';
+
+                        const formattedDate = newDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                        const dateRangeDisplay = auditInfo.toDate && auditInfo.toDate !== auditInfo.date
+                            ? `${formattedDate} to ${newToDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}`
+                            : formattedDate;
+
+                        await sendNotification(
+                            'Audit Date Refixed',
+                            `The audit date for application (${application.applicationNumber}) has been refixed to ${dateRangeDisplay} at ${auditInfo.time}. Next Step: Prepare your facility for the updated audit session.`,
+                            true,
+                            'view_audit',
+                            { auditId: audit._id.toString() }
+                        );
+
+                        getCompanyRecipients(application.companyId, company).then(recipients => {
+                            if (recipients.length > 0) {
+                                sendTrackingUpdateEmail(
+                                    recipients,
+                                    company.companyName || company.fullName || 'Valued Client',
+                                    application.applicationNumber,
+                                    'Audit Date Rescheduled',
+                                    `Your certification audit date has been refixed to ${dateRangeDisplay} at ${auditInfo.time}. Please ensure your facility is prepared for the audit session accordingly.`
+                                ).catch(err => console.error('Failed to send audit date refixed email to client:', err));
+                            }
+                        }).catch(err => console.error('Failed to resolve recipients:', err));
+
+                        if (audit.auditors && audit.auditors.length > 0) {
+                            for (const auditor of audit.auditors) {
+                                if (auditor.email) {
+                                    sendAuditScheduledEmail(
+                                        auditor.email,
+                                        auditor.name || 'Auditor',
+                                        auditor.role || 'Auditor',
+                                        company.companyName || company.fullName || 'The company',
+                                        application.applicationNumber,
+                                        dateRangeDisplay,
+                                        auditInfo.time
+                                    ).catch(err => console.error(`Failed to send refixed audit email to auditor ${auditor.email}:`, err));
+                                }
+                            }
+                        }
+
                     } else {
-                        throw new Error('Invalid schedule action. Use "propose" or "finalizeDate".');
+                        throw new Error('Invalid schedule action. Use "propose", "finalizeDate", or "refix".');
                     }
 
                 } else if (subStepNum === 2) {
                     // Sub-step 2: Assign Auditors to concluded date
+                    const isAlreadyAudited = Boolean(
+                        application.processData?.audit?.auditedAt ||
+                        (application.processData?.audit?.subStep || 0) >= 3 ||
+                        application.processData?.audit?.status === 'Audited'
+                    );
+                    if (isAlreadyAudited) {
+                        return res.status(400).json({ message: 'The audit session has already been marked as audited. Assigned auditors cannot be changed.' });
+                    }
+
                     let auditInfo;
                     try { auditInfo = JSON.parse(data); } catch { auditInfo = {}; }
 
@@ -1154,6 +1246,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     const leadAuditor = auditorsList.find(aud => aud.role === 'Lead Auditor') || auditorsList[0];
 
                     let audit2 = await auditModel.findOne({ applicationId: id, status: { $ne: 'Completed' } });
+                    if (!audit2 && application.processData?.audit?.auditId) {
+                        audit2 = await auditModel.findById(application.processData.audit.auditId);
+                    }
                     if (!audit2) throw new Error('No audit record found. Please schedule dates first.');
 
                     audit2.staffName = leadAuditor.name || 'TBD';
@@ -1210,6 +1305,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
 
                 } else if (subStepNum === 3) {
                     // Sub-step 3: Audited — mark audit as Accepted/Completed
+                    if (application.processData?.audit?.auditedAt) {
+                        return res.json({ status: 'success', message: 'Application has already been marked as audited.', application });
+                    }
                     const auditId = application.processData?.audit?.auditId;
                     if (auditId) {
                         await auditModel.findByIdAndUpdate(auditId, { status: 'Audited' });
