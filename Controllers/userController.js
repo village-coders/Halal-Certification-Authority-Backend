@@ -507,15 +507,28 @@ const sendBulkClientEmail = async (req, res, next) => {
             return res.status(400).json({ message: "Subject and content are required" });
         }
 
-        if (req?.user?.role !== "admin" && req?.user?.role !== "super admin") {
-            return res.status(400).json({ message: "You must be an admin to access this route" });
+        const role = req?.user?.role?.toLowerCase()?.trim();
+        if (role !== "admin" && role !== "super admin") {
+            return res.status(403).json({ message: "You must be an admin or super admin to access this route" });
         }
 
-        await sendBulkEmail(emails, subject, content);
+        // Clean, validate and deduplicate recipient emails (supports client, admin, and super admin emails)
+        const cleanEmails = [...new Set(
+            emails
+                .filter(e => typeof e === "string")
+                .map(e => e.trim())
+                .filter(e => e.length > 0 && e.includes("@"))
+        )];
+
+        if (cleanEmails.length === 0) {
+            return res.status(400).json({ message: "No valid recipient email addresses provided" });
+        }
+
+        await sendBulkEmail(cleanEmails, subject, content);
 
         res.status(200).json({
             status: "success",
-            message: `Email sent to ${emails.length} recipients`
+            message: `Email sent to ${cleanEmails.length} recipients`
         });
     } catch (error) {
         next(error);
