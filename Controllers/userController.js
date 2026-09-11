@@ -507,8 +507,8 @@ const sendBulkClientEmail = async (req, res, next) => {
             return res.status(400).json({ message: "Subject and content are required" });
         }
 
-        if (req?.user?.role !== "admin" || "super admin"){
-            return res.status(400).json({ message: "You must be an admin to access this route"});
+        if (req?.user?.role !== "admin" && req?.user?.role !== "super admin") {
+            return res.status(400).json({ message: "You must be an admin to access this route" });
         }
 
         await sendBulkEmail(emails, subject, content);
