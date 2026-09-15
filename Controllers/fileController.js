@@ -13,6 +13,7 @@ const getFile = async (req, res) => {
             'auditReports',
             'certificatePDFs',
             'messageAttachments',
+            'ticketAttachments',
             'productDocs',
             'documents',
             'profileImages',

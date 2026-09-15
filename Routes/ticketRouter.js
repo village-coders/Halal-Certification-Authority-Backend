@@ -16,7 +16,7 @@ router.use(isLoggedIn);
 router.post('/', resolveCompanyUser, upload.array('attachments', 5), ticketController.createTicket);
 router.get('/my', resolveCompanyUser, ticketController.getMyTickets);
 router.get('/:ticketId', resolveCompanyUser, ticketController.getTicketById);
-router.post('/:ticketId/reply', upload.array('attachments', 5), ticketController.replyToTicket);
+router.post('/:ticketId/reply', resolveCompanyUser, upload.array('attachments', 5), ticketController.replyToTicket);
 
 // Admin routes
 router.get('/', ticketController.getAllTickets);

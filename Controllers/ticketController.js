@@ -24,7 +24,7 @@ exports.createTicket = async (req, res) => {
     const attachments = [];
     for (const file of files) {
       try {
-        const uploadResult = await uploadToGridFS(file, 'ticketAttachments', {
+        const uploadResult = await uploadToHybridStorage(file, 'ticket-attachments', 'ticketAttachments', {
           senderId: userId,
           type: 'ticket-attachment'
         });
@@ -180,7 +180,7 @@ exports.replyToTicket = async (req, res) => {
     const attachments = [];
     for (const file of files) {
       try {
-        const uploadResult = await uploadToGridFS(file, 'ticketAttachments', {
+        const uploadResult = await uploadToHybridStorage(file, 'ticket-attachments', 'ticketAttachments', {
           senderId: userId,
           type: 'ticket-reply-attachment'
         });
