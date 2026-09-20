@@ -177,7 +177,7 @@ const respondToAudit = async (req, res) => {
 
                 const transporter = require("../Services/Nodemailer/transporter");
                 transporter.sendMail({
-                    from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
+                    from: `HDI <${process.env.EMAIL_USER}>`,
                     to: adminEmails,
                     subject: `📅 Audit Date Response (${status}) — Application ${appNo}`,
                     html: `
@@ -185,9 +185,9 @@ const respondToAudit = async (req, res) => {
                           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
                             <header style="text-align: center; margin-bottom: 24px;">
                               <a href="https://halalcert.com.ng" target="_blank" style="text-decoration: none;">
-                                <img loading="lazy" src="${logoUrl}" alt="Halal & Haram Distinction Development Initiative Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
+                                <img loading="lazy" src="${logoUrl}" alt="HDI Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
                               </a>
-                              <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal & Haram Distinction Development Initiative (HDI)</h2>
+                              <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">HDI</h2>
                             </header>
                             <p style="font-size: 16px;">Hello <strong>Admin</strong>,</p>
                             <p>The client for application <strong>${appNo}</strong> has ${actionDescription}</p>
@@ -204,7 +204,7 @@ const respondToAudit = async (req, res) => {
                             </div>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px 0;" />
                             <footer style="text-align: center; font-size: 13px; color: #666; line-height: 1.5;">
-                              <p style="margin: 4px 0; font-weight: bold; color: #333;">The Halal & Haram Distinction Development Initiative (HDI) Team</p>
+                              <p style="margin: 4px 0; font-weight: bold; color: #333;">The HDI Team</p>
                               <p style="margin: 4px 0;">Website: <a href="https://halalcert.com.ng" style="color: #00853b; text-decoration: none;">halalcert.com.ng</a></p>
                               <p style="margin: 4px 0;">Email: <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none;">support@halalcert.com.ng</a></p>
                             </footer>
@@ -513,7 +513,7 @@ const uploadNcCorrection = async (req, res) => {
 
                 const transporter = require("../Services/Nodemailer/transporter");
                 transporter.sendMail({
-                    from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
+                    from: `HDI <${process.env.EMAIL_USER}>`,
                     to: adminEmails,
                     subject: `📄 NC Correction Uploaded — ${companyName} (${appNo})`,
                     html: `
@@ -521,9 +521,9 @@ const uploadNcCorrection = async (req, res) => {
                           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
                             <header style="text-align: center; margin-bottom: 24px;">
                               <a href="https://halalcert.com.ng" target="_blank" style="text-decoration: none;">
-                                <img loading="lazy" src="${logoUrl}" alt="Halal & Haram Distinction Development Initiative Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
+                                <img loading="lazy" src="${logoUrl}" alt="HDI Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
                               </a>
-                              <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal & Haram Distinction Development Initiative (HDI)</h2>
+                              <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">HDI</h2>
                             </header>
                             <p style="font-size: 16px;">Hello <strong>Admin</strong>,</p>
                             <p><strong>${companyName}</strong> has uploaded a Non-Conformity (NC) Correction document for application <strong>${appNo}</strong>.</p>
@@ -540,7 +540,7 @@ const uploadNcCorrection = async (req, res) => {
                             </div>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px 0;" />
                             <footer style="text-align: center; font-size: 13px; color: #666; line-height: 1.5;">
-                              <p style="margin: 4px 0; font-weight: bold; color: #333;">The Halal & Haram Distinction Development Initiative (HDI) Team</p>
+                              <p style="margin: 4px 0; font-weight: bold; color: #333;">The HDI Team</p>
                               <p style="margin: 4px 0;">Website: <a href="https://halalcert.com.ng" style="color: #00853b; text-decoration: none;">halalcert.com.ng</a></p>
                               <p style="margin: 4px 0;">Email: <a href="mailto:support@halalcert.com.ng" style="color: #00853b; text-decoration: none;">support@halalcert.com.ng</a></p>
                             </footer>

@@ -18,7 +18,7 @@ const invoiceRejectedEmail = async (adminEmails, companyName, invoiceNumber, rea
         const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
         await transporter.sendMail({
-            from: `Halal and Haram Distinction Development Initiative <${process.env.EMAIL_USER}>`,
+            from: `HDI <${process.env.EMAIL_USER}>`,
             to: adminEmails,
             subject: `⚠️ Invoice Rejected by Client — ${invoiceNumber}`,
             html: `
@@ -29,7 +29,7 @@ const invoiceRejectedEmail = async (adminEmails, companyName, invoiceNumber, rea
                             <a href="https://halalcert.com.ng" target="_blank" style="text-decoration: none;">
                                 <img loading="lazy" src="${logoUrl}" alt="HDI Logo" style="max-width: 150px; height: auto; margin-bottom: 12px;" />
                             </a>
-                            <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">Halal &amp; Haram Distinction Development Initiative</h2>
+                            <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">HDI</h2>
                         </header>
 
                         <div style="background-color: #fff3cd; border-left: 5px solid #ffc107; border-radius: 6px; padding: 16px; margin-bottom: 20px;">
