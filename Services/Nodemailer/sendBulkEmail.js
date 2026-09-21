@@ -8,11 +8,7 @@ const sendBulkEmail = async (emails, subject, content) => {
 
     const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
-    const data = await transporter.sendMail({
-      from: `HDI <${process.env.EMAIL_USER}>`,
-      to: emails,
-      subject: subject,
-      html: `
+    const htmlContent = `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
             
@@ -41,10 +37,30 @@ const sendBulkEmail = async (emails, subject, content) => {
             </footer>
           </div>
         </div>
-      `,
+      `;
+
+    // Send individually to each recipient so clients never see other clients' email addresses
+    const sendPromises = emails.map(async (recipient) => {
+      try {
+        const info = await transporter.sendMail({
+          from: `HDI <${process.env.EMAIL_USER}>`,
+          to: recipient,
+          subject: subject,
+          html: htmlContent,
+        });
+        return { email: recipient, success: true, messageId: info.messageId };
+      } catch (err) {
+        console.error(`❌ Failed to send bulk email to ${recipient}:`, err.message);
+        return { email: recipient, success: false, error: err.message };
+      }
     });
-    console.log("📧 Bulk emails sent successfully!");
-    return data;
+
+    const results = await Promise.all(sendPromises);
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
+
+    console.log(`📧 Bulk email delivery complete: ${successCount} sent successfully, ${failCount} failed.`);
+    return results;
   } catch (error) {
     console.error("Bulk Email Error:", error);
     throw error;
