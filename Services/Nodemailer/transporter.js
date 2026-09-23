@@ -61,8 +61,29 @@ async function sendMailViaGraph(mailOptions) {
   const ccRecipients = parseRecipients(mailOptions.cc);
   const bccRecipients = parseRecipients(mailOptions.bcc);
 
+  // Set sender name and address (defaults to "HDI <ict@halalcert.com.ng>")
+  let senderName = "HDI";
+  let senderAddress = sender;
+
+  const rawFrom = mailOptions.from || `HDI <${sender}>`;
+  if (rawFrom) {
+    const match = String(rawFrom).match(/^(.*?)\s*<(.+)>$/);
+    if (match) {
+      senderName = match[1].replace(/["']/g, "").trim() || "HDI";
+      senderAddress = match[2].trim() || sender;
+    } else {
+      senderAddress = String(rawFrom).trim();
+    }
+  }
+
   const message = {
     subject: mailOptions.subject || "",
+    from: {
+      emailAddress: {
+        name: senderName,
+        address: senderAddress,
+      },
+    },
     body: {
       contentType: mailOptions.html ? "HTML" : "Text",
       content: mailOptions.html || mailOptions.text || "",
