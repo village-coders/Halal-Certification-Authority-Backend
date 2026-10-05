@@ -434,6 +434,33 @@ const createApplication = async (req, res) => {
             }
         }
 
+        // If this is a renewal application, mark the old certificate as Renewal
+        if (category === 'Renewal Application') {
+            try {
+                if (savedApplication.renewedCertificateId) {
+                    await certificateModel.findByIdAndUpdate(savedApplication.renewedCertificateId, {
+                        status: 'Renewal'
+                    });
+                } else if (savedApplication.renewedApplicationId) {
+                    await certificateModel.updateMany(
+                        { applicationId: savedApplication.renewedApplicationId },
+                        { status: 'Renewal' }
+                    );
+                } else if (savedApplication.branchId) {
+                    await certificateModel.updateMany(
+                        {
+                            companyId: savedApplication.companyId,
+                            branchId: savedApplication.branchId,
+                            status: { $nin: ['Inactive', 'Revoked'] }
+                        },
+                        { status: 'Renewal' }
+                    );
+                }
+            } catch (certErr) {
+                console.error('Failed to update certificate status to Renewal on submission:', certErr);
+            }
+        }
+
         try {
             const notification = new notificationModel({
                 title: 'New Application',
@@ -1688,7 +1715,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                                 {
                                     companyId: application.companyId,
                                     branchId: application.branchId,
-                                    status: { $in: ['Expired', 'Expiring Soon', 'Active'] },
+                                    status: { $in: ['Expired', 'Expiring Soon', 'Active', 'Renewal'] },
                                     _id: { $ne: certificate._id }
                                 },
                                 { $set: { status: 'Inactive' } }

@@ -35,7 +35,7 @@ const certificateSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Active', 'Expiring Soon', 'Expired', 'Suspended', 'Revoked', 'Pending', 'Inactive'],
+    enum: ['Active', 'Expiring Soon', 'Expired', 'Suspended', 'Revoked', 'Pending', 'Inactive', 'Renewal'],
     default: 'Active'
   },
   product: {
@@ -101,7 +101,7 @@ certificateSchema.index({ applicationId: 1 });
 
 // Pre-save middleware to update status based on expiry date
 certificateSchema.pre('save', function(next) {
-  if (this.status === 'Inactive') return next();
+  if (this.status === 'Inactive' || this.status === 'Renewal' || this.status === 'Revoked' || this.status === 'Suspended') return next();
 
   const now = new Date();
   const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);

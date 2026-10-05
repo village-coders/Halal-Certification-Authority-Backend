@@ -20,27 +20,63 @@ const checkAndStatusSync = async () => {
         const now = new Date();
         const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-        // Find all certificates that are not already 'Expired', 'Revoked', or 'Inactive'
-        // Inactive = deliberately retired (e.g. superseded by a renewed certificate) — must not be auto-changed
+        // Fetch all active renewal applications
+        const activeRenewals = await applicationModel.find({
+            category: "Renewal Application",
+            status: { $nin: ["Issued", "Rejected", "Expired"] }
+        }).select('_id renewedCertificateId renewedApplicationId companyId branchId');
+
+        const renewedCertIdSet = new Set();
+        const renewedAppIdSet = new Set();
+        const legacyRenewalBranchKeys = new Set();
+
+        activeRenewals.forEach(app => {
+            if (app.renewedCertificateId) {
+                renewedCertIdSet.add(app.renewedCertificateId.toString());
+            }
+            if (app.renewedApplicationId) {
+                renewedAppIdSet.add(app.renewedApplicationId.toString());
+            }
+            if (!app.renewedCertificateId && !app.renewedApplicationId && app.companyId && app.branchId) {
+                legacyRenewalBranchKeys.add(`${app.companyId}_${app.branchId.toString()}`);
+            }
+        });
+
+        // Find all certificates that are not Inactive, Revoked, or Suspended
+        // (Includes Expired and Expiring Soon so those under active renewal transition to Renewal)
         const certificates = await certificateModel.find({
-            status: { $nin: ['Expired', 'Revoked', 'Inactive'] },
+            status: { $nin: ['Inactive', 'Revoked', 'Suspended'] },
         }).sort({ createdAt: -1 });
 
         for (const cert of certificates) {
+            const certIdStr = cert._id.toString();
+            const certAppIdStr = cert.applicationId ? cert.applicationId.toString() : null;
+            const certBranchKey = cert.companyId && cert.branchId ? `${cert.companyId}_${cert.branchId.toString()}` : null;
+
+            const isUnderRenewal = renewedCertIdSet.has(certIdStr) || 
+                                   (certAppIdStr && renewedAppIdSet.has(certAppIdStr)) ||
+                                   (certBranchKey && legacyRenewalBranchKeys.has(certBranchKey));
+
             let newStatus = cert.status;
-            
-            if (cert.expiryDate < now) {
-                newStatus = 'Expired';
-            } else if (cert.expiryDate <= ninetyDaysFromNow) {
-                newStatus = 'Expiring Soon';
+
+            if (isUnderRenewal) {
+                newStatus = 'Renewal';
+            } else {
+                if (cert.expiryDate < now) {
+                    newStatus = 'Expired';
+                } else if (cert.expiryDate <= ninetyDaysFromNow) {
+                    newStatus = 'Expiring Soon';
+                } else {
+                    newStatus = 'Active';
+                }
             }
 
             if (newStatus !== cert.status) {
                 cert.status = newStatus;
                 await cert.save();
 
-                // Sync the associated application status
-                if (cert.applicationId) {
+                // Sync the associated application status if applicable
+                if (cert.applicationId && ['Active', 'Expiring Soon', 'Expired'].includes(newStatus)) {
                     await applicationModel.findByIdAndUpdate(cert.applicationId, {
                       status: newStatus
                     });
