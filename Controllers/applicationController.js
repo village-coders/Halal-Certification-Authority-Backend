@@ -156,7 +156,21 @@ const getApplication = async (req, res) => {
             await applicationModel.findByIdAndUpdate(application._id, { processStep: 6 });
         }
 
-        res.json(application);
+        const cert = await certificateModel.findOne({ applicationId: req.params.id }).sort({ createdAt: -1 });
+        const appObj = application.toObject();
+        if (cert) {
+            appObj.certificate = {
+                _id: cert._id,
+                certificateNumber: cert.certificateNumber,
+                status: cert.status,
+                expiryDate: cert.expiryDate,
+                issueDate: cert.issueDate,
+                pdfPaths: cert.pdfPaths,
+                labelPaths: cert.labelPaths
+            };
+        }
+
+        res.json(appObj);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -1559,33 +1573,91 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 }
 
                 const finalCertNumber = certNumber || application.applicationNumber;
-                const finalFiles = filePaths.length > 0 ? filePaths : (application.processData.certificateFiles || []);
-                const finalFileIds = fileIds.length > 0 ? fileIds : (application.processData.certificateFileIds || []);
-                const finalLabels = labelPaths.length > 0 ? labelPaths : (application.processData.labelFiles || []);
-                const finalLabelIds = labelIds.length > 0 ? labelIds : (application.processData.labelFileIds || []);
+                // Check if a certificate record already exists for this application or certificate number
+                let certificate = await certificateModel.findOne({ applicationId: id, status: { $ne: 'Inactive' } }).sort({ createdAt: -1 });
+                if (!certificate) {
+                    certificate = await certificateModel.findOne({ applicationId: id }).sort({ createdAt: -1 });
+                }
+                if (!certificate && application.processData?.certificateNumber) {
+                    certificate = await certificateModel.findOne({ certificateNumber: application.processData.certificateNumber });
+                }
+                const isUpdate = Boolean(certificate);
 
-                // Create a certificate record
+                if (isUpdate && certificate.status === 'Inactive') {
+                    return res.status(400).json({
+                        message: 'This certificate has an Inactive status and cannot be reuploaded or updated.'
+                    });
+                }
+
+                const finalFiles = filePaths.length > 0
+                    ? filePaths
+                    : (application.processData?.certificateFiles && application.processData.certificateFiles.length > 0
+                        ? application.processData.certificateFiles
+                        : (certificate?.pdfPaths || []));
+
+                const finalFileIds = fileIds.length > 0
+                    ? fileIds
+                    : (application.processData?.certificateFileIds && application.processData.certificateFileIds.length > 0
+                        ? application.processData.certificateFileIds
+                        : (certificate?.pdfFileIds || []));
+
+                const finalLabels = labelPaths.length > 0
+                    ? labelPaths
+                    : (application.processData?.labelFiles && application.processData.labelFiles.length > 0
+                        ? application.processData.labelFiles
+                        : (certificate?.labelPaths || []));
+
+                const finalLabelIds = labelIds.length > 0
+                    ? labelIds
+                    : (application.processData?.labelFileIds && application.processData.labelFileIds.length > 0
+                        ? application.processData.labelFileIds
+                        : (certificate?.labelFileIds || []));
+
+                // Validate uniqueness of certificate number across other certificates
+                const existingWithNumber = await certificateModel.findOne({
+                    certificateNumber: finalCertNumber,
+                    _id: isUpdate ? { $ne: certificate._id } : { $exists: true }
+                });
+                if (existingWithNumber) {
+                    return res.status(400).json({ message: `Certificate number "${finalCertNumber}" is already in use by another certificate.` });
+                }
+
                 const products = await productModel.find({ applicationId: id });
 
-                const certificate = new certificateModel({
-                    certificateNumber: finalCertNumber,
-                    certificateType: application.category,
-                    standard: 'ISO 22000:2018', // Default standard
-                    status: 'Active',
-                    product: products.map(p => p.name),
-                    issueDate: new Date(),
-                    expiryDate: expiryDate ? new Date(expiryDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-                    applicationId: id,
-                    companyId: application.companyId,
-                    branchId: application.branchId,
-                    pdfFileIds: finalFileIds,
-                    pdfPaths: finalFiles,
-                    labelPaths: finalLabels,
-                    labelFileIds: finalLabelIds,
-                    generatedBy: "Admin (Manual)"
-                });
-
-                await certificate.save();
+                if (isUpdate) {
+                    certificate.certificateNumber = finalCertNumber;
+                    if (application.category) certificate.certificateType = application.category;
+                    if (expiryDate) certificate.expiryDate = new Date(expiryDate);
+                    certificate.product = products.map(p => p.name);
+                    certificate.applicationId = id;
+                    certificate.companyId = application.companyId;
+                    if (application.branchId) certificate.branchId = application.branchId;
+                    certificate.pdfPaths = finalFiles;
+                    certificate.pdfFileIds = finalFileIds;
+                    certificate.labelPaths = finalLabels;
+                    certificate.labelFileIds = finalLabelIds;
+                    certificate.generatedBy = "Admin (Manual - Updated)";
+                    await certificate.save();
+                } else {
+                    certificate = new certificateModel({
+                        certificateNumber: finalCertNumber,
+                        certificateType: application.category,
+                        standard: 'ISO 22000:2018', // Default standard
+                        status: 'Active',
+                        product: products.map(p => p.name),
+                        issueDate: new Date(),
+                        expiryDate: expiryDate ? new Date(expiryDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+                        applicationId: id,
+                        companyId: application.companyId,
+                        branchId: application.branchId,
+                        pdfFileIds: finalFileIds,
+                        pdfPaths: finalFiles,
+                        labelPaths: finalLabels,
+                        labelFileIds: finalLabelIds,
+                        generatedBy: "Admin (Manual)"
+                    });
+                    await certificate.save();
+                }
 
                 // Mark all associated products as approved
                 await productModel.updateMany(
@@ -1596,45 +1668,61 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 // --- Retire the old (renewed) certificate ---
                 // When this application is a renewal, mark the source certificate as Inactive
                 // so it no longer appears in the client's renewable certificates list.
-                try {
-                    if (application.renewedCertificateId) {
-                        // Direct link to the specific old certificate
-                        await certificateModel.findByIdAndUpdate(
-                            application.renewedCertificateId,
-                            { $set: { status: 'Inactive' } }
-                        );
-                    } else if (application.renewedApplicationId) {
-                        // Find the certificate associated with the source application
-                        await certificateModel.updateMany(
-                            { applicationId: application.renewedApplicationId },
-                            { $set: { status: 'Inactive' } }
-                        );
-                    } else if (application.category === 'Renewal Application') {
-                        // Fallback: retire any Expired or Expiring Soon certs on this branch
-                        await certificateModel.updateMany(
-                            {
-                                companyId: application.companyId,
-                                branchId: application.branchId,
-                                status: { $in: ['Expired', 'Expiring Soon', 'Active'] },
-                                _id: { $ne: certificate._id }
-                            },
-                            { $set: { status: 'Inactive' } }
-                        );
+                if (!isUpdate) {
+                    try {
+                        if (application.renewedCertificateId) {
+                            // Direct link to the specific old certificate
+                            await certificateModel.findByIdAndUpdate(
+                                application.renewedCertificateId,
+                                { $set: { status: 'Inactive' } }
+                            );
+                        } else if (application.renewedApplicationId) {
+                            // Find the certificate associated with the source application
+                            await certificateModel.updateMany(
+                                { applicationId: application.renewedApplicationId },
+                                { $set: { status: 'Inactive' } }
+                            );
+                        } else if (application.category === 'Renewal Application') {
+                            // Fallback: retire any Expired or Expiring Soon certs on this branch
+                            await certificateModel.updateMany(
+                                {
+                                    companyId: application.companyId,
+                                    branchId: application.branchId,
+                                    status: { $in: ['Expired', 'Expiring Soon', 'Active'] },
+                                    _id: { $ne: certificate._id }
+                                },
+                                { $set: { status: 'Inactive' } }
+                            );
+                        }
+                    } catch (retireErr) {
+                        console.error('Failed to retire old certificate on renewal issuance:', retireErr);
                     }
-                } catch (retireErr) {
-                    console.error('Failed to retire old certificate on renewal issuance:', retireErr);
                 }
 
                 application.processData.certificateFiles = finalFiles;
                 application.processData.certificateFileIds = finalFileIds;
                 application.processData.certificateNumber = finalCertNumber;
-                application.processData.certificateExpiryDate = expiryDate;
-                application.processData.labelFiles = finalLabels;
-                application.processData.labelFileIds = finalLabelIds;
-                application.processData.issuedAt = new Date();
+                application.processData.certificateStatus = certificate.status;
+                if (expiryDate) {
+                    application.processData.certificateExpiryDate = expiryDate;
+                }
+                if (labelPaths.length > 0 || !application.processData.labelFiles) {
+                    application.processData.labelFiles = finalLabels;
+                    application.processData.labelFileIds = finalLabelIds;
+                }
+                if (!application.processData.issuedAt) {
+                    application.processData.issuedAt = new Date();
+                }
+                application.processData.certificateUpdatedAt = new Date();
                 application.status = 'Issued';
                 application.processStep = 10;
-                await sendNotification('Certificate Issued', `Congratulations! Your Halal Certificate (${finalCertNumber}) has been successfully issued. Next Step: Log into your dashboard to view and download your certificate and Halal Logo.`);
+
+                const notificationTitle = isUpdate ? 'Certificate Updated' : 'Certificate Issued';
+                const notificationMsg = isUpdate
+                    ? `Your Halal Certificate (${finalCertNumber}) has been updated. Next Step: Log into your dashboard to view and download your updated certificate.`
+                    : `Congratulations! Your Halal Certificate (${finalCertNumber}) has been successfully issued. Next Step: Log into your dashboard to view and download your certificate and Halal Logo.`;
+
+                await sendNotification(notificationTitle, notificationMsg);
 
                 const companyIssued = await userModel.findOne({ registrationNo: application.companyId });
                 if (companyIssued) {
