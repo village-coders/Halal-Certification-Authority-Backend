@@ -5,6 +5,13 @@ const createBranch = async (req, res, next) => {
     try {
         const { branchName, address, lga, city, state, country, contactName, contactNumber, positionTitle, webAddress, governmentPlantCode } = req.body;
         
+        if (!positionTitle || !positionTitle.trim()) {
+            return res.status(400).json({
+                status: "error",
+                message: "Position / Title is required"
+            });
+        }
+
         // Use companyOwnerId so sub-users create branches under the parent company
         const companyId = req.companyOwnerId || req.user.id;
 

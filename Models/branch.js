@@ -40,7 +40,7 @@ const branchSchema = new mongoose.Schema({
     },
     positionTitle: {
         type: String,
-        default: ''
+        required: true
     },
     webAddress: {
         type: String,
