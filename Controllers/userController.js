@@ -80,13 +80,15 @@ const getUserById = async (req, res, next) => {
             email: findUser.email,
             id: findUser._id,
             image: findUser.authImage,
-            contact: findUser.companyContact,
+            contact: findUser.contact || findUser.companyContact,
+            companyContact: findUser.companyContact || findUser.contact,
             registrationNo: findUser.registrationNo,
             address: findUser.address,
             lga: findUser.lga,
             city: findUser.city,
             state: findUser.state,
             position: findUser.position,
+            positionTitle: findUser.positionTitle || findUser.position,
             website: findUser.website,
             role: findUser.role,
             status: findUser.status, // Add status field if it exists
@@ -208,6 +210,11 @@ const updateUser = async (req, res, next) => {
             delete updatedFields.registrationNo;
             delete updatedFields.privileges;
             delete updatedFields.isBuilder;
+            delete updatedFields.position; // Users cannot edit system position
+        }
+
+        if (req.body.positionTitle !== undefined) {
+            updatedFields.positionTitle = req.body.positionTitle;
         }
 
         if (authImagePath) {

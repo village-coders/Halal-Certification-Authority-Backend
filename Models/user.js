@@ -108,6 +108,9 @@ const userSchema = new mongoose.Schema({
     // required: true,
     default: "company"
   },
+  positionTitle: {
+    type: String,
+  },
   website: {
     type: String,
     // required: true
