@@ -252,6 +252,7 @@ const applicationSchema = new mongoose.Schema({
     // Step 3: Invoice Sent
     invoiceFile: { type: String, default: '' }, // uploaded file path
     invoiceSentAt: { type: Date },
+    invoiceReminderSentAt: { type: Date },
     // Step 4: Payment Received
     paymentConfirmedAt: { type: Date },
     // Step 5: Product Approval Forms Received

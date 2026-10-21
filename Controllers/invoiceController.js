@@ -8,12 +8,13 @@ const proofOfPaymentRejectedEmail = require('../Services/Nodemailer/proofOfPayme
 const invoiceIssuedEmail = require('../Services/Nodemailer/invoiceIssuedEmail');
 const paymentReceivedEmail = require('../Services/Nodemailer/paymentReceivedEmail');
 const invoiceRejectedEmail = require('../Services/Nodemailer/invoiceRejectedEmail');
+const sendInvoiceReminderEmail = require('../Services/Nodemailer/invoiceReminderEmail');
 const userModel = require('../Models/user');
 const notificationModel = require('../Models/notification');
 
 // Admin Create an invoice for a client
 const adminCreateInvoice = async (req, res) => {
-    const { userId, applicationId, amount, description } = req.body;
+    const { userId, applicationId, branchId: directBranchId, amount, description } = req.body;
 
     try {
         if (!userId) {
@@ -39,8 +40,8 @@ const adminCreateInvoice = async (req, res) => {
             }
         }
 
-        let branchId = undefined;
-        if (applicationId) {
+        let branchId = directBranchId || undefined;
+        if (!branchId && applicationId) {
             const application = await applicationModel.findById(applicationId);
             if (application) {
                 branchId = application.branchId;
@@ -60,6 +61,10 @@ const adminCreateInvoice = async (req, res) => {
         });
 
         await invoice.save();
+        await invoice.populate([
+            { path: 'userId', select: 'companyName fullName email' },
+            { path: 'branchId', select: 'branchName address city state' }
+        ]);
 
         // Notify the user that an invoice has been issued
         try {
@@ -544,6 +549,85 @@ const resendInvoice = async (req, res) => {
     }
 };
 
+// Send Invoice Payment Reminder (Admin only)
+const sendInvoiceReminder = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const invoice = await invoiceModel.findById(id).populate('userId');
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+
+        if (invoice.status === 'Paid') {
+            return res.status(400).json({ message: 'This invoice has already been paid.' });
+        }
+
+        invoice.reminderSentAt = new Date();
+        invoice.reminderCount = (invoice.reminderCount || 0) + 1;
+        await invoice.save();
+
+        let appNo = invoice.invoiceNumber;
+        if (invoice.applicationId) {
+            const application = await applicationModel.findById(invoice.applicationId);
+            if (application) {
+                appNo = application.applicationNumber;
+                if (!application.processData) application.processData = {};
+                application.processData.invoiceReminderSentAt = new Date();
+                await application.save();
+            }
+        }
+
+        const user = invoice.userId;
+        const clientName = user?.companyName || user?.fullName || 'Valued Client';
+
+        // In-app notification
+        try {
+            const notification = new notificationModel({
+                title: 'Payment Reminder: Halal Certification Invoice',
+                message: `This is a gentle reminder that your Halal Certification invoice (${invoice.invoiceNumber}) has been issued and is awaiting payment. Kindly make payment or upload your receipt through the portal.`,
+                forAdmin: false,
+                type: 'invoice',
+                companyId: user?._id,
+                showAsModal: true,
+                actionType: 'view_invoice',
+                actionData: { invoiceId: invoice._id.toString() }
+            });
+            await notification.save();
+        } catch (notifErr) {
+            console.error('Failed to create in-app reminder notification:', notifErr);
+        }
+
+        // Email client & company members
+        try {
+            const getCompanyMemberEmails = require('../Utils/getCompanyMemberEmails');
+            const memberEmails = user?.registrationNo ? await getCompanyMemberEmails(user.registrationNo) : [];
+            const recipientEmails = memberEmails.length > 0 ? memberEmails : (user?.email ? [user.email] : []);
+
+            if (recipientEmails.length > 0) {
+                await sendInvoiceReminderEmail(
+                    recipientEmails,
+                    clientName,
+                    appNo,
+                    invoice.invoiceNumber
+                );
+            }
+        } catch (emailErr) {
+            console.error('Failed to send reminder email:', emailErr);
+        }
+
+        res.json({
+            message: 'Payment reminder sent successfully',
+            reminderSentAt: invoice.reminderSentAt,
+            reminderCount: invoice.reminderCount,
+            invoice
+        });
+    } catch (error) {
+        console.error('Error sending invoice payment reminder:', error);
+        res.status(500).json({ message: error.message || 'Failed to send payment reminder' });
+    }
+};
+
 module.exports = {
     adminCreateInvoice,
     issueInvoice,
@@ -553,6 +637,7 @@ module.exports = {
     rejectProofOfPayment,
     rejectInvoice,
     resendInvoice,
+    sendInvoiceReminder,
     getInvoices,
     getInvoiceById
 };

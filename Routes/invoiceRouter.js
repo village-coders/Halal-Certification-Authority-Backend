@@ -9,6 +9,7 @@ const {
     rejectProofOfPayment,
     rejectInvoice,
     resendInvoice,
+    sendInvoiceReminder,
     getInvoices,
     getInvoiceById
 } = require('../Controllers/invoiceController');
@@ -26,6 +27,7 @@ invoiceRouter.put('/:id/approve-payment', isLoggedIn, adminOnly, approvePayment)
 invoiceRouter.put('/:id/reject-proof', isLoggedIn, adminOnly, rejectProofOfPayment);
 invoiceRouter.put('/:id/reject', isLoggedIn, resolveCompanyUser, rejectInvoice);
 invoiceRouter.put('/:id/resend', isLoggedIn, adminOnly, upload.single('invoiceFile'), resendInvoice);
+invoiceRouter.post('/:id/remind', isLoggedIn, adminOnly, sendInvoiceReminder);
 invoiceRouter.get('/', isLoggedIn, resolveCompanyUser, getInvoices);
 invoiceRouter.get('/:id', isLoggedIn, resolveCompanyUser, getInvoiceById);
 

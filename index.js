@@ -49,6 +49,11 @@ if (process.env.ADMIN_DOMAIN) {
   });
 }
 
+// If in development, allow all origins (but still enforce credentials)
+if (process.env.NODE_ENV === 'development') {
+  allowedOrigins.push('*');
+}
+
 // Ensure production domains are always allowed to prevent CORS issues
 const productionDomains = [
   'https://hdiportal.com',
