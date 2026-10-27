@@ -9,18 +9,23 @@ dotenv.config();
  * @param {string} companyName - Name of the client company.
  * @param {string} invoiceNumber - The invoice number.
  * @param {string} reason - The client's rejection reason.
+ * @param {string|mongoose.Types.ObjectId} [applicationId] - The application's MongoDB _id.
  */
-const invoiceRejectedEmail = async (adminEmails, companyName, invoiceNumber, reason) => {
+const invoiceRejectedEmail = async (adminEmails, companyName, invoiceNumber, reason, applicationId = null) => {
     try {
         console.log("📤 Sending invoice rejected notification to admins:", adminEmails);
 
-        const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/invoices`;
+        const targetAppId = applicationId?._id || applicationId;
+        const adminPortalUrl = targetAppId
+            ? `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/applications/${targetAppId}/process`
+            : `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/invoices`;
         const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
+        const displayName = companyName ? `${companyName} (${invoiceNumber})` : invoiceNumber;
         await transporter.sendMail({
             from: `HDI <${process.env.EMAIL_USER}>`,
             to: adminEmails,
-            subject: `⚠️ Invoice Rejected by Client — ${invoiceNumber}`,
+            subject: `⚠️ Invoice Rejected by Client — ${displayName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
                     <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -55,7 +60,7 @@ const invoiceRejectedEmail = async (adminEmails, companyName, invoiceNumber, rea
 
                         <div style="text-align: center; margin-top: 24px;">
                             <a href="${adminPortalUrl}" style="background-color: #00853b; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
-                                View Invoices
+                                Process Application
                             </a>
                         </div>
 

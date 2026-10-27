@@ -9,12 +9,14 @@ dotenv.config();
  * @param {string} companyName - The name of the company or user who uploaded the proof.
  * @param {string} invoiceNumber - The invoice number associated with the payment.
  * @param {string} proofUrl - The URL to view/download the proof of payment.
+ * @param {string|mongoose.Types.ObjectId} [applicationId] - The application's MongoDB _id.
  */
 const proofOfPaymentUploadedEmail = async (
   toEmails,
   companyName,
   invoiceNumber,
-  proofUrl
+  proofUrl,
+  applicationId = null
 ) => {
   try {
     if (!toEmails || toEmails.length === 0) {
@@ -24,13 +26,17 @@ const proofOfPaymentUploadedEmail = async (
 
     console.log(`📤 Sending proof of payment uploaded email to ${toEmails.length} admins...`);
 
-    const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/invoices`;
+    const targetAppId = applicationId?._id || applicationId;
+    const adminPortalUrl = targetAppId
+      ? `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/applications/${targetAppId}/process`
+      : `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/invoices`;
     const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
+    const displayName = companyName ? `${companyName} (${invoiceNumber})` : invoiceNumber;
     await transporter.sendMail({
       from: `HDI <${process.env.EMAIL_USER}>`,
       to: toEmails,
-      subject: `💰 Proof of Payment Uploaded — ${invoiceNumber}`,
+      subject: `💰 Proof of Payment Uploaded — ${displayName}`,
       html: `
         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -64,12 +70,12 @@ const proofOfPaymentUploadedEmail = async (
             </table>
 
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${proofUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; margin-bottom: 10px;">
+              <a href="${proofUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; margin-bottom: 12px;">
                 View Proof of Payment
               </a>
               <br />
               <a href="${adminPortalUrl}" style="background-color: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;">
-                Go to Admin Dashboard
+                Process Application
               </a>
             </div>
 

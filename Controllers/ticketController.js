@@ -71,7 +71,7 @@ exports.createTicket = async (req, res) => {
       const admins = await User.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
       const adminEmails = admins.map(a => a.email);
       for (const email of adminEmails) {
-        await sendNewTicketAdminEmail(email, ticket, req.user.fullName || req.user.email);
+        await sendNewTicketAdminEmail(email, ticket, req.user.companyName || req.user.fullName || req.user.email);
       }
     } catch (err) {
       console.error('Notification error:', err);
@@ -255,7 +255,7 @@ exports.replyToTicket = async (req, res) => {
         const admins = await User.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
         const adminEmails = admins.map(a => a.email);
         for (const email of adminEmails) {
-          await sendTicketReplyEmail(email, 'Admin', ticket, content, req.user.fullName || req.user.email);
+          await sendTicketReplyEmail(email, 'Admin', ticket, content, req.user.companyName || req.user.fullName || req.user.email);
         }
       }
     } catch (err) {

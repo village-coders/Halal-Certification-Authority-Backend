@@ -165,8 +165,26 @@ const respondToAudit = async (req, res) => {
             const admins = await userModel.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
             const adminEmails = admins.map(a => a.email).filter(Boolean);
             if (adminEmails.length > 0) {
-                const appNo = audit.applicationId ? (await applicationModel.findById(audit.applicationId))?.applicationNumber : 'N/A';
-                const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/audits`;
+                let companyName = 'Client';
+                let appNo = 'N/A';
+                if (audit.applicationId) {
+                    const appDoc = await applicationModel.findById(audit.applicationId).populate('company');
+                    if (appDoc) {
+                        appNo = appDoc.applicationNumber || 'N/A';
+                        companyName = appDoc.company?.companyName || appDoc.company?.fullName || companyName;
+                    }
+                }
+                if (companyName === 'Client' && audit.userId) {
+                    const userDoc = await userModel.findById(audit.userId);
+                    if (userDoc) {
+                        companyName = userDoc.companyName || userDoc.fullName || 'Client';
+                    }
+                }
+
+                const targetAppId = audit.applicationId?._id || audit.applicationId;
+                const adminPortalUrl = targetAppId
+                    ? `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/applications/${targetAppId}/process`
+                    : `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/audits`;
                 const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
                 let actionDescription = status === 'Accepted'
@@ -179,7 +197,7 @@ const respondToAudit = async (req, res) => {
                 transporter.sendMail({
                     from: `HDI <${process.env.EMAIL_USER}>`,
                     to: adminEmails,
-                    subject: `📅 Audit Date Response (${status}) — Application ${appNo}`,
+                    subject: `📅 Audit Date Response (${status}) — ${companyName} (${appNo})`,
                     html: `
                         <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
                           <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -190,7 +208,21 @@ const respondToAudit = async (req, res) => {
                               <h2 style="color: #00853b; margin: 0; font-size: 20px; font-weight: bold;">HDI</h2>
                             </header>
                             <p style="font-size: 16px;">Hello <strong>Admin</strong>,</p>
-                            <p>The client for application <strong>${appNo}</strong> has ${actionDescription}</p>
+                            <p>The client <strong>${companyName}</strong> (Application <strong>${appNo}</strong>) has ${actionDescription}</p>
+                            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;">
+                              <tr>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb; background-color: #f9f9f9; font-weight: bold; width: 35%;">Company Name</td>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb;">${companyName}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb; background-color: #f9f9f9; font-weight: bold;">Application Number</td>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb;">${appNo}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb; background-color: #f9f9f9; font-weight: bold;">Response Status</td>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb;">${status}</td>
+                              </tr>
+                            </table>
                             <div style="background-color: #f0fdf4; border-left: 4px solid #00853b; padding: 16px; margin: 24px 0; border-radius: 4px;">
                               <p style="margin: 0; font-weight: bold; color: #166534;">Action Required:</p>
                               <p style="margin: 6px 0 0 0; color: #15803d;">
@@ -199,7 +231,7 @@ const respondToAudit = async (req, res) => {
                             </div>
                             <div style="text-align: center; margin: 32px 0;">
                               <a href="${adminPortalUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
-                                View Audit Schedule
+                                Process Application
                               </a>
                             </div>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px 0;" />
@@ -506,9 +538,22 @@ const uploadNcCorrection = async (req, res) => {
             const admins = await userModel.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
             const adminEmails = admins.map(a => a.email).filter(Boolean);
             if (adminEmails.length > 0) {
-                const companyName = audit.userId?.companyName || audit.userId?.fullName || 'Client';
-                const appNo = audit.applicationId ? (await applicationModel.findById(audit.applicationId))?.applicationNumber : 'N/A';
-                const adminPortalUrl = `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/audits`;
+                let companyName = audit.userId?.companyName || audit.userId?.fullName;
+                let appNo = 'N/A';
+                if (audit.applicationId) {
+                    const appDoc = await applicationModel.findById(audit.applicationId).populate('company');
+                    if (appDoc) {
+                        appNo = appDoc.applicationNumber || 'N/A';
+                        if (!companyName) {
+                            companyName = appDoc.company?.companyName || appDoc.company?.fullName;
+                        }
+                    }
+                }
+                companyName = companyName || 'Client';
+                const targetAppId = audit.applicationId?._id || audit.applicationId;
+                const adminPortalUrl = targetAppId
+                    ? `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/applications/${targetAppId}/process`
+                    : `${process.env.ADMIN_DOMAIN || 'http://localhost:5174'}/audits`;
                 const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
                 const transporter = require("../Services/Nodemailer/transporter");
@@ -527,6 +572,16 @@ const uploadNcCorrection = async (req, res) => {
                             </header>
                             <p style="font-size: 16px;">Hello <strong>Admin</strong>,</p>
                             <p><strong>${companyName}</strong> has uploaded a Non-Conformity (NC) Correction document for application <strong>${appNo}</strong>.</p>
+                            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;">
+                              <tr>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb; background-color: #f9f9f9; font-weight: bold; width: 35%;">Company Name</td>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb;">${companyName}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb; background-color: #f9f9f9; font-weight: bold;">Application Number</td>
+                                <td style="padding: 10px; border: 1px solid #e5e7eb;">${appNo}</td>
+                              </tr>
+                            </table>
                             <div style="background-color: #f0fdf4; border-left: 4px solid #00853b; padding: 16px; margin: 24px 0; border-radius: 4px;">
                               <p style="margin: 0; font-weight: bold; color: #166534;">Action Required:</p>
                               <p style="margin: 6px 0 0 0; color: #15803d;">
@@ -535,7 +590,7 @@ const uploadNcCorrection = async (req, res) => {
                             </div>
                             <div style="text-align: center; margin: 32px 0;">
                               <a href="${adminPortalUrl}" style="background-color: #00853b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
-                                Review NC Correction
+                                Process Application
                               </a>
                             </div>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0 20px 0;" />

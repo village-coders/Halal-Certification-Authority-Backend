@@ -6,10 +6,11 @@ const logoUrl = "https://hdiportal.com/assets/hdiLogo1-CjnI96Er.png";
 
 const sendNewTicketAdminEmail = async (adminEmail, ticket, userName) => {
     try {
+        const displayName = userName ? `${userName} (${ticket.ticketNumber})` : ticket.ticketNumber;
         const data = await transporter.sendMail({
             from: `HDI <${process.env.EMAIL_USER}>`,
             to: adminEmail,
-            subject: `🎫 New Support Ticket: ${ticket.ticketNumber} - ${ticket.title}`,
+            subject: `🎫 New Support Ticket: ${displayName} - ${ticket.title}`,
             html: `
                 <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
                   <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">
@@ -62,10 +63,11 @@ const sendNewTicketAdminEmail = async (adminEmail, ticket, userName) => {
 
 const sendTicketReplyEmail = async (recipientEmail, recipientName, ticket, replyContent, senderName) => {
     try {
+        const displayName = senderName && recipientName === 'Admin' ? `${senderName} (${ticket.ticketNumber})` : ticket.ticketNumber;
         const data = await transporter.sendMail({
             from: `HDI <${process.env.EMAIL_USER}>`,
             to: recipientEmail,
-            subject: `💬 New Reply to Ticket: ${ticket.ticketNumber}`,
+            subject: `💬 New Reply to Ticket: ${displayName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6; padding: 20px; background-color: #f9fafb;">
                   <div style="max-width: 600px; margin: auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 30px;">

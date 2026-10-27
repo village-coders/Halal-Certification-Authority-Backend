@@ -262,11 +262,13 @@ const uploadProofOfPayment = async (req, res) => {
             const adminEmails = notifyAdmins.map(admin => admin.email).filter(Boolean);
             
             if (adminEmails.length > 0) {
+                const targetAppId = invoice.applicationId?._id || invoice.applicationId || null;
                 proofOfPaymentUploadedEmail(
                     adminEmails,
                     companyName,
                     invoice.invoiceNumber,
-                    proofUrl
+                    proofUrl,
+                    targetAppId
                 ).catch(err => console.error("Error sending proof of payment email:", err));
             }
         } catch (err) {
@@ -445,11 +447,13 @@ const rejectInvoice = async (req, res) => {
             const admins = await userModel.find({ role: { $in: ['admin', 'super admin'] } }).select('email');
             const adminEmails = admins.map(a => a.email).filter(Boolean);
             if (adminEmails.length > 0) {
+                const targetAppId = invoice.applicationId?._id || invoice.applicationId || null;
                 invoiceRejectedEmail(
                     adminEmails,
                     companyName,
                     invoice.invoiceNumber,
-                    invoice.rejectionReason
+                    invoice.rejectionReason,
+                    targetAppId
                 ).catch(err => console.error('Failed to send invoice rejected email:', err));
             }
         } catch (notifErr) {

@@ -484,7 +484,8 @@ const createApplication = async (req, res) => {
                     adminEmails,
                     company.companyName || company.fullName || 'A Client',
                     applicationNumber,
-                    category
+                    category,
+                    savedApplication._id
                 ).catch(err => console.error('Failed to send new application admin email:', err));
             }
         } catch (err) {
