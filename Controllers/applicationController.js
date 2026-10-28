@@ -204,12 +204,16 @@ const createApplication = async (req, res) => {
         // Check application eligibility & duplicate in-progress applications
         if (category === 'Ad-On Application' || category === 'Ad-On') {
             // 1. Verify that this branch has an already certified application or active certificate
+            const branchAppIds = await applicationModel.find({ branchId: branchId }).distinct('_id');
             const hasCertifiedApp = await applicationModel.findOne({
                 branchId: branchId,
-                status: "Issued"
+                status: { $in: ["Issued", "Certified", "Approved", "issued", "certified", "approved"] }
             });
             const hasCertificate = await certificateModel.findOne({
-                branchId: branchId,
+                $or: [
+                    { branchId: branchId },
+                    { applicationId: { $in: branchAppIds } }
+                ],
                 status: { $in: ["Active", "Expiring Soon", "Expired"] }
             });
 
@@ -287,7 +291,6 @@ const createApplication = async (req, res) => {
         } else {
             // Check if there is an active initial application for this branch
             const existingApplication = await applicationModel.findOne({
-                companyId: company.registrationNo,
                 branchId: branchId,
                 category: { $nin: ['Renewal Application', 'Ad-On Application', 'Ad-On'] },
                 status: { $nin: ["Rejected", "Expired"] }
@@ -295,7 +298,23 @@ const createApplication = async (req, res) => {
 
             if (existingApplication) {
                 return res.status(400).json({
-                    message: `An active initial application already exists for this branch (${branch.branchName}).`
+                    message: `An initial application already exists for this site (${branch.branchName}). To certify additional products for this site, please apply for an Ad-On Application.`
+                });
+            }
+
+            // Also check if there is an existing certificate for this branch
+            const branchAppIds = await applicationModel.find({ branchId: branchId }).distinct('_id');
+            const existingCert = await certificateModel.findOne({
+                $or: [
+                    { branchId: branchId },
+                    { applicationId: { $in: branchAppIds } }
+                ],
+                status: { $in: ["Active", "Expiring Soon", "Expired", "Renewal"] }
+            });
+
+            if (existingCert) {
+                return res.status(400).json({
+                    message: `This site (${branch.branchName}) is already certified. To certify additional products for this site, please apply for an Ad-On Application.`
                 });
             }
         }
