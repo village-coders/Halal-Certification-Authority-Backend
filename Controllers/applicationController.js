@@ -1036,11 +1036,20 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                 }
                 break;
-            case 4:
-                // Invoice Sent - upload invoice file
-                application.status = 'Invoice Sent';
+            case 4: {
+                // Invoice Sent - upload or reupload invoice file
+                const isReupload = Boolean(application.processData?.invoiceFile || application.processData?.invoiceSentAt);
+
+                // Update application status if payment hasn't already been confirmed
+                if (!application.processData?.paymentConfirmedAt && (application.processStep <= 5 || application.status === 'Accepted' || application.status === 'Product Forms Received')) {
+                    application.status = 'Invoice Sent';
+                }
+
                 if (filePath) {
                     application.processData.invoiceFile = filePath;
+                    if (fileIds && fileIds[0]) {
+                        application.processData.invoiceFileId = fileIds[0];
+                    }
 
                     // Automatically create/update Invoice document
                     const company = await userModel.findOne({ registrationNo: application.companyId });
@@ -1060,15 +1069,35 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             });
                         } else {
                             invoice.invoiceFile = filePath;
-                            invoice.status = 'Issued';
+                            // Reset invoice status and clear rejections/proof if payment hasn't already been approved
+                            if (invoice.status !== 'Paid' && invoice.status !== 'Proof of Payment Approved' && !application.processData?.paymentConfirmedAt) {
+                                invoice.status = 'Issued';
+                                invoice.rejectionReason = null;
+                                invoice.rejectedAt = null;
+                                invoice.proofRejectionReason = null;
+                                invoice.proofRejectedAt = null;
+                                invoice.proofOfPayment = null;
+                            }
                             invoice.issuedAt = new Date();
+                            invoice.reminderSentAt = null;
+                            invoice.reminderCount = 0;
                         }
                         await invoice.save();
                     }
                 }
-                application.processData.invoiceSentAt = new Date();
+
+                if (!application.processData.invoiceSentAt) {
+                    application.processData.invoiceSentAt = new Date();
+                }
+                application.processData.invoiceUpdatedAt = new Date();
                 application.processStep = Math.max(application.processStep, 5);
-                await sendNotification('Invoice Sent', `An invoice has been sent for your application (${application.applicationNumber}). Next Step: Please log into the portal to view the invoice and upload your proof of payment.`, true, 'view_invoice', { applicationId: id });
+
+                const notifTitle = isReupload ? 'Invoice Updated' : 'Invoice Sent';
+                const notifMessage = isReupload
+                    ? `An updated invoice has been uploaded for your application (${application.applicationNumber}). Next Step: Please log into the portal to review the updated invoice and upload your proof of payment.`
+                    : `An invoice has been sent for your application (${application.applicationNumber}). Next Step: Please log into the portal to view the invoice and upload your proof of payment.`;
+
+                await sendNotification(notifTitle, notifMessage, true, 'view_invoice', { applicationId: id });
 
                 const companyInvoice = await userModel.findOne({ registrationNo: application.companyId });
                 if (companyInvoice) {
@@ -1081,10 +1110,11 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             application.applicationNumber,
                             invoiceDoc?.invoiceNumber || application.applicationNumber,
                             invoiceDoc?.amount ? `₦${invoiceDoc.amount.toLocaleString()}` : 'See attached invoice'
-                        ).catch(err => console.error('Failed to send Invoice Issued email to client:', err));
+                        ).catch(err => console.error(`Failed to send ${isReupload ? 'Invoice Updated' : 'Invoice Issued'} email to client:`, err));
                     }
                 }
                 break;
+            }
             case 5:
                 // Payment Received — also mark invoice as Proof of Payment Approved
                 application.status = 'Payment Received';

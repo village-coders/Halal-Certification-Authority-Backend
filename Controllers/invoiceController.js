@@ -477,9 +477,9 @@ const resendInvoice = async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
 
-        if (invoice.status !== 'Cancelled') {
+        if (['Paid', 'Proof of Payment Approved', 'Payment Confirmed'].includes(invoice.status)) {
             return res.status(400).json({
-                message: `Only cancelled invoices can be resent. Current status: ${invoice.status}`
+                message: `Paid or approved invoices cannot be resent. Current status: ${invoice.status}`
             });
         }
 
@@ -497,12 +497,30 @@ const resendInvoice = async (req, res) => {
             } else {
                 invoice.invoiceFile = uploadResult.fileUrl;
             }
+
+            if (invoice.applicationId) {
+                try {
+                    await applicationModel.findByIdAndUpdate(invoice.applicationId, {
+                        $set: {
+                            'processData.invoiceFile': invoice.invoiceFile,
+                            'processData.invoiceUpdatedAt': new Date()
+                        }
+                    });
+                } catch (appErr) {
+                    console.error('Failed to sync invoice file to application processData:', appErr);
+                }
+            }
         }
 
-        // Re-issue the invoice — clear rejection and reset status
+        // Re-issue the invoice — clear rejection/proof and reset status
         invoice.status = 'Issued';
         invoice.rejectionReason = null;
         invoice.rejectedAt = null;
+        invoice.proofRejectionReason = null;
+        invoice.proofRejectedAt = null;
+        invoice.proofOfPayment = null;
+        invoice.reminderSentAt = null;
+        invoice.reminderCount = 0;
         invoice.issuedAt = new Date();
         if (amount !== undefined) invoice.amount = amount;
         if (description !== undefined) invoice.description = description;
