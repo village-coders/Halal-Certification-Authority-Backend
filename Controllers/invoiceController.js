@@ -251,6 +251,16 @@ const uploadProofOfPayment = async (req, res) => {
 
         await invoice.save();
 
+        if (invoice.applicationId) {
+            try {
+                await applicationModel.findByIdAndUpdate(invoice.applicationId, {
+                    $set: { 'processData.proofOfPayment': invoice.proofOfPayment }
+                });
+            } catch (syncErr) {
+                console.error("Error syncing proofOfPayment to application:", syncErr);
+            }
+        }
+
         const proofUrl = invoice.proofOfPayment;
         const companyName = invoice.userId?.companyName || invoice.userId?.fullName || 'Client';
         

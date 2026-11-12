@@ -257,6 +257,7 @@ const applicationSchema = new mongoose.Schema({
     invoiceReminderSentAt: { type: Date },
     // Step 4: Payment Received
     paymentConfirmedAt: { type: Date },
+    proofOfPayment: { type: String, default: '' },
     // Step 5: Product Approval Forms Received
     productFormsReceivedAt: { type: Date },
     // Step 6: Audit Session (nested sub-steps)

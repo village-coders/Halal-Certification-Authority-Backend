@@ -1115,17 +1115,21 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                 }
                 break;
             }
-            case 5:
+            case 5: {
                 // Payment Received — also mark invoice as Proof of Payment Approved
                 application.status = 'Payment Received';
                 application.processData.paymentConfirmedAt = new Date();
                 application.processStep = Math.max(application.processStep, 6);
 
-                // Update linked invoice status
-                await invoiceModel.findOneAndUpdate(
+                // Update linked invoice status and preserve proofOfPayment on application processData
+                const updatedInvoice = await invoiceModel.findOneAndUpdate(
                     { applicationId: id },
-                    { status: 'Proof of Payment Approved', paidAt: new Date() }
+                    { status: 'Proof of Payment Approved', paidAt: new Date() },
+                    { new: true }
                 );
+                if (updatedInvoice?.proofOfPayment) {
+                    application.processData.proofOfPayment = updatedInvoice.proofOfPayment;
+                }
                 await sendNotification('Payment Received', `Your payment for application (${application.applicationNumber}) has been confirmed. Next Step: We will be proposing audit dates soon. Please check your dashboard to review and approve them.`);
 
                 const companyPayment = await userModel.findOne({ registrationNo: application.companyId });
@@ -1140,6 +1144,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                 }
                 break;
+            }
             case 6: {
                 // Audit sub-steps — all changes sync to the real audit collection
                 application.status = 'Audit Session';
