@@ -49,6 +49,12 @@ const auditDatesProposedEmail = async (email, clientName, applicationId) => {
               </p>
             </div>
 
+            <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-left: 5px solid #dc2626; padding: 14px 16px; margin: 24px 0; border-radius: 6px;">
+              <p style="margin: 0; color: #b91c1c; font-size: 13.5px; font-weight: bold; line-height: 1.5;">
+                NOTE: Adequate transportation and accommodation (for audit exceeding one day), and other logistics will be borne and provided by the auditee during an audit exercise.
+              </p>
+            </div>
+
             <p>
               You can track the progress of your application and view updates by logging into your dashboard.
             </p>

@@ -1202,7 +1202,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                         application.processData.audit.rejectReason = undefined;
                         application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 1);
 
-                        await sendNotification('Audit Dates Proposed', `2 audit date options have been proposed for your application (${application.applicationNumber}). Next Step: Please log in to select your preferred date or propose alternative dates.`, true, 'respond_audit_schedule', { auditId: audit._id.toString() });
+                        await sendNotification('Audit Dates Proposed', `2 audit date options have been proposed for your application (${application.applicationNumber}). Next Step: Please log in to select your preferred date or propose alternative dates.\n\nNOTE: Adequate transportation and accommodation (for audit exceeding one day), and other logistics will be borne and provided by the auditee during an audit exercise.`, true, 'respond_audit_schedule', { auditId: audit._id.toString() });
 
                         getCompanyRecipients(application.companyId, company).then(recipients => {
                             if (recipients.length > 0) {
@@ -1386,7 +1386,7 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                             ).catch(err => console.error(`Failed to send audit email to ${auditor.email}:`, err));
                         }
                     }
-                    await sendNotification('Auditors Assigned', `Auditors have been assigned for your audit session (${application.applicationNumber}). We have also attached preparation documents. Next Step: You will be contacted by the auditors shortly. Please log in to view and download the preparation documents to get your facility ready.`, true, 'view_audit', { auditId: audit2._id.toString() });
+                    await sendNotification('Auditors Assigned', `Auditors have been assigned for your audit session (${application.applicationNumber}). We have also attached preparation documents. Next Step: You will be contacted by the auditors shortly. Please log in to view and download the preparation documents to get your facility ready.\n\nNOTE: Adequate transportation and accommodation (for audit exceeding one day), and other logistics will be borne and provided by the auditee during an audit exercise.`, true, 'view_audit', { auditId: audit2._id.toString() });
 
                     if (company2) {
                         const recipients2 = await getCompanyRecipients(application.companyId, company2);
