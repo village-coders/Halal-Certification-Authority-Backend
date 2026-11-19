@@ -203,6 +203,10 @@ const getAllProducts = async (req, res, next) => {
             build.applicationId = query.applicationId
         }
 
+        if (query.category) {
+            build.category = query.category
+        }
+
         const products = await productModel.find(build).sort({ createdAt: -1 }).populate("applicationId").populate("branchId").populate("createdBy", "companyId companyName email address phone")
 
         if (!products) {
@@ -224,7 +228,8 @@ const getAllProducts = async (req, res, next) => {
 }
 
 const approveProduct = async (req, res, next) => {
-    const { id } = req.params
+    const { id } = req.params;
+    const { category } = req.body;
     try {
 
         const products = await productModel.findById(id)
@@ -240,7 +245,7 @@ const approveProduct = async (req, res, next) => {
         // console.log(company);
 
         if (!company) {
-            res.status(404).json({
+            return res.status(404).json({
                 status: "error",
                 message: "No company found"
             })
@@ -248,6 +253,9 @@ const approveProduct = async (req, res, next) => {
         company.approvedProducts = (company.approvedProducts || 0) + 1;
 
         products.status = "acknowledged"
+        if (category !== undefined && category !== null) {
+            products.category = category;
+        }
 
         await products.save()
         await company.save()
@@ -416,6 +424,41 @@ const deleteMyProduct = async (req, res, next) => {
     }
 }
 
+const updateProduct = async (req, res, next) => {
+    const { id } = req.params;
+    const { category, name, note } = req.body;
+    try {
+        const product = await productModel.findById(id);
+        if (!product) {
+            return res.status(404).json({
+                status: "error",
+                message: "Product not found"
+            });
+        }
+
+        if (category !== undefined) {
+            product.category = category;
+        }
+        if (name !== undefined) {
+            product.name = name;
+        }
+        if (note !== undefined) {
+            product.note = note;
+        }
+
+        await product.save();
+
+        res.status(200).json({
+            status: "success",
+            message: "Product updated successfully",
+            product
+        });
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
 module.exports = {
     createProduct,
     getMyProducts,
@@ -423,5 +466,6 @@ module.exports = {
     getAllProducts,
     getSingleProducts,
     approveProduct,
-    rejectProduct
+    rejectProduct,
+    updateProduct
 }

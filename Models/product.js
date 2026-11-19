@@ -13,70 +13,27 @@ const productSchema = new mongoose.Schema(
       required: true
     },
 
-    // marketType: {
-    //   type: String,
-    //   enum: ["Food Service (Bulk)", "Retail", "Direct Marketing"],
-    //   required: true
-    // },
-
-    // industry: {
-    //   type: String,
-    //   default: ""
-    // },
-
-    // brandOwnership: {
-    //   type: String,
-    //   enum: ["Owned", "Private Label"],
-    //   required: true
-    // },
-
-    // Compliance questions
-    // porkDerivative: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // animalDerivative: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // gelatin: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // alcohol: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // alcoholInAdditives: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // glycerine: {
-    //   type: Boolean,
-    //   required: true
-    // },
-
-    // // Markets
-    // markets: {
-    //   type: [String],
-    //   enum: [
-    //     "Within Nigeria",
-    //     "North Africa",
-    //     "West Africa",
-    //     "Europe",
-    //     "Gulf Countries",
-    //     "Asia",
-    //     "United States",
-    //     "Worldwide",
-    //     "Other"
-    //   ],
-    //   default: []
-    // },
+    category: {
+      type: String,
+      enum: [
+        "Fresh and Processed beef",
+        "Fresh Poultry",
+        "Seasoning",
+        "Ambient stable Product",
+        "Food Additives", 
+        "Cosmetic Ingredients", 
+        "Bakery and Confectionery product",
+        "Dairy Product",
+        "Non-alcoholic beverages & Soft drink",
+        "Fruit Concentrates and Purees",
+        "Catering  & Inflight Services",
+        "Catering & Inflight Services",
+        "Packaging",
+        "Crude & Refined Oil",
+        ""
+      ],
+      default: ""
+    },
 
     applicationId: {
       type: mongoose.Schema.Types.ObjectId,
