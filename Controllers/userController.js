@@ -9,6 +9,8 @@ const sendVerificationEmailToAdmin = require("../Services/Nodemailer/sendVerific
 const sendBulkEmail = require("../Services/Nodemailer/sendBulkEmail");
 const { uploadToHybridStorage } = require("../Utils/fileUpload");
 const certificateModel = require("../Models/certificate");
+const invoiceModel = require("../Models/invoice");
+const applicationModel = require("../Models/application");
 
 const getAllUsers = async (req, res, next) => {
     const query = req.query;
@@ -487,7 +489,46 @@ const getClientList = async (req, res, next) => {
 
         let users = await userModel.find(userFilter).select("companyName email registrationNo");
 
-        if (status) {
+        if (status === "AwaitingProofOfPayment") {
+            const [pendingInvoices, pendingApps] = await Promise.all([
+                invoiceModel.find({
+                    status: { $in: ["Issued", "Invoice Sent", "Proof Rejected"] },
+                    $or: [
+                        { proofOfPayment: { $exists: false } },
+                        { proofOfPayment: null },
+                        { proofOfPayment: "" }
+                    ]
+                }).select("userId").populate("userId", "registrationNo companyId"),
+                applicationModel.find({
+                    status: "Invoice Sent",
+                    $or: [
+                        { "processData.proofOfPayment": { $exists: false } },
+                        { "processData.proofOfPayment": null },
+                        { "processData.proofOfPayment": "" }
+                    ]
+                }).select("company companyId")
+            ]);
+
+            const targetIds = new Set();
+            const targetRegNos = new Set();
+
+            pendingInvoices.forEach(inv => {
+                if (inv.userId?._id) targetIds.add(inv.userId._id.toString());
+                else if (inv.userId) targetIds.add(inv.userId.toString());
+                if (inv.userId?.registrationNo) targetRegNos.add(inv.userId.registrationNo.toLowerCase());
+                if (inv.userId?.companyId) targetRegNos.add(inv.userId.companyId.toLowerCase());
+            });
+
+            pendingApps.forEach(app => {
+                if (app.company) targetIds.add(app.company.toString());
+                if (app.companyId) targetRegNos.add(app.companyId.toLowerCase());
+            });
+
+            users = users.filter(u =>
+                targetIds.has(u._id.toString()) ||
+                (u.registrationNo && targetRegNos.has(u.registrationNo.toLowerCase()))
+            );
+        } else if (status) {
             const certs = await certificateModel.find({ status }).select("companyId");
             const companyIdsLower = certs.map(c => c.companyId?.toLowerCase());
             users = users.filter(u => companyIdsLower.includes(u.registrationNo?.toLowerCase()));

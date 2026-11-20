@@ -1155,7 +1155,9 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     let auditInfo;
                     try { auditInfo = JSON.parse(data); } catch { auditInfo = {}; }
 
-                    const company = await userModel.findOne({ registrationNo: application.companyId });
+                    const company = await userModel.findOne({ registrationNo: application.companyId, isUnderCompany: false })
+                        || await userModel.findById(application.company)
+                        || await userModel.findOne({ registrationNo: application.companyId });
                     if (!company) throw new Error('Company not found for this application');
 
                     let audit = await auditModel.findOne({ applicationId: id, status: { $ne: 'Completed' } });
@@ -1406,7 +1408,11 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
                     const auditId = application.processData?.audit?.auditId;
                     if (auditId) {
-                        await auditModel.findByIdAndUpdate(auditId, { status: 'Audited' });
+                        const existingAudit = await auditModel.findById(auditId);
+                        if (existingAudit && !['NC Flagged', 'Correction Needed', 'Completed'].includes(existingAudit.status)) {
+                            existingAudit.status = 'Audited';
+                            await existingAudit.save();
+                        }
                     }
                     application.processData.audit.auditedAt = new Date();
                     application.processData.audit.subStep = Math.max(application.processData.audit.subStep || 0, 3);
@@ -1426,20 +1432,46 @@ const updateProcessStep = [processUpload.fields([{ name: 'file', maxCount: 10 },
                     }
 
                 } else if (subStepNum === 4) {
-                    // Sub-step 4: NC Report upload — save file to audit record
+                    // Sub-step 4: NC Report upload — save file to audit record (create audit record if sub-step 1 was skipped, e.g. Ad-On applications)
                     if (filePath) {
-                        const auditId = application.processData?.audit?.auditId;
-                        if (auditId) {
-                            await auditModel.findByIdAndUpdate(auditId, {
+                        const company4 = await userModel.findOne({ registrationNo: application.companyId, isUnderCompany: false })
+                            || await userModel.findById(application.company)
+                            || await userModel.findOne({ registrationNo: application.companyId });
+
+                        let auditId = application.processData?.audit?.auditId;
+                        let auditDoc = auditId ? await auditModel.findById(auditId) : null;
+                        if (!auditDoc) {
+                            auditDoc = await auditModel.findOne({ applicationId: id, status: { $ne: 'Completed' } });
+                        }
+
+                        if (auditDoc) {
+                            auditDoc.ncReport = filePath;
+                            auditDoc.status = 'NC Flagged';
+                            await auditDoc.save();
+                            auditId = auditDoc._id.toString();
+                        } else if (company4) {
+                            auditDoc = new auditModel({
+                                applicationId: id,
+                                userId: company4._id,
+                                branchId: application.branchId,
                                 ncReport: filePath,
                                 status: 'NC Flagged'
                             });
+                            await auditDoc.save();
+                            auditId = auditDoc._id.toString();
                         }
+
+                        if (!application.processData.audit) {
+                            application.processData.audit = {};
+                        }
+                        if (auditId) {
+                            application.processData.audit.auditId = auditId;
+                        }
+                        application.processData.audit.status = 'NC Flagged';
                         application.processData.audit.ncReport = filePath;
                         application.processData.audit.ncReportFile = filePath;
-                        await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true, 'upload_nc_correction', { auditId: application.processData?.audit?.auditId });
+                        await sendNotification('NC Report Uploaded', `A Non-Conformity report has been uploaded for your application (${application.applicationNumber}). Next Step: Please log in to download the report and take the necessary corrective actions immediately.`, true, 'upload_nc_correction', { auditId: auditId });
 
-                        const company4 = await userModel.findOne({ registrationNo: application.companyId });
                         if (company4) {
                             const ncReportUrl = filePath ? `${process.env.CLIENT_DOMAIN || 'http://localhost:5173'}${filePath}` : null;
                             const recipients4 = await getCompanyRecipients(application.companyId, company4);
