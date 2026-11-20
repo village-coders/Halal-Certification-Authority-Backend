@@ -39,14 +39,14 @@ const fileFilter = (req, file, cb) => {
     'application/x-rar-compressed'
   ];
 
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxSize = 20 * 1024 * 1024; // 20MB
 
   if (!allowedMimeTypes.includes(file.mimetype)) {
     return cb(new Error('Invalid file type. Allowed types: images, PDF, Word, Excel, text, zip, rar'), false);
   }
 
   if (file.size > maxSize) {
-    return cb(new Error('File size exceeds 5MB limit'), false);
+    return cb(new Error('File size exceeds 20MB limit'), false);
   }
 
   cb(null, true);
@@ -57,7 +57,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 20 * 1024 * 1024, // 20MB
     files: 5 // Maximum 5 files per message
   }
 });
@@ -68,7 +68,7 @@ const handleUploadError = (err, req, res, next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         status: 'error',
-        message: 'File too large. Maximum size is 5MB'
+        message: 'File too large. Maximum size is 20MB'
       });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {

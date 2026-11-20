@@ -471,10 +471,10 @@ const uploadNcCorrection = async (req, res) => {
             return res.status(400).json({ message: 'No correction files uploaded' });
         }
 
-        // Validate file sizes (5MB limit)
+        // Validate file sizes (20MB limit)
         for (const fileObj of req.files) {
-            if (fileObj.size > 5 * 1024 * 1024) {
-                return res.status(400).json({ message: `File "${fileObj.originalname}" exceeds the 5MB size limit.` });
+            if (fileObj.size > 20 * 1024 * 1024) {
+                return res.status(400).json({ message: `File "${fileObj.originalname}" exceeds the 20MB size limit.` });
             }
         }
 

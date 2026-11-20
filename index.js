@@ -96,8 +96,8 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(morgan("dev"));
 app.use('/uploads', express.static('uploads'));
 

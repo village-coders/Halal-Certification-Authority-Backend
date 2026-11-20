@@ -39,8 +39,8 @@ const getCompanyRecipients = async (registrationNo, fallbackUser) => {
     return emails.length > 0 ? emails : (fallbackUser?.email ? [fallbackUser.email] : []);
 };
 
-// Configure multer for process file uploads (5MB limit)
-const processUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+// Configure multer for process file uploads (20MB limit)
+const processUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const uploadFileToGridFS = async (req, fileObj, applicationId, stepNum = 1, subStep = 0, convertToPdf = false) => {
     const bucket = getGridFSBucket('applicationFiles');
