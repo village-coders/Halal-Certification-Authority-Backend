@@ -129,7 +129,7 @@ const getApplications = async (req, res) => {
             build.companyId = company.registrationNo;
         }
 
-        const applications = await applicationModel.find(build).sort({ createdAt: -1 }).populate('company', 'companyName registrationNo email phone address').populate('branchId')
+        const applications = await applicationModel.find(build).sort({ createdAt: -1 }).populate('company', 'companyName registrationNo email phone companyContact contact address lga city state country').populate('branchId')
         res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -140,7 +140,7 @@ const getApplications = async (req, res) => {
 const getApplication = async (req, res) => {
     try {
         await checkAndStatusSync();
-        const application = await applicationModel.findById(req.params.id).populate('company', 'companyName registrationNo email phone address').populate('branchId')
+        const application = await applicationModel.findById(req.params.id).populate('company', 'companyName registrationNo email phone companyContact contact address lga city state country').populate('branchId')
         if (!application) {
             return res.status(404).json({ message: 'Application not found' });
         }
@@ -158,6 +158,39 @@ const getApplication = async (req, res) => {
 
         const cert = await certificateModel.findOne({ applicationId: req.params.id }).sort({ createdAt: -1 });
         const appObj = application.toObject();
+
+        // Ensure company has the latest address/details from the parent company record
+        if (appObj.companyId && (!appObj.company || !appObj.company.address)) {
+            const parentCompany = await userModel.findOne({ registrationNo: appObj.companyId, isUnderCompany: false })
+                .select('companyName registrationNo email phone companyContact contact address lga city state country')
+                .lean();
+            if (parentCompany) {
+                appObj.company = { ...(appObj.company || {}), ...parentCompany };
+            }
+        }
+
+        // Fall back to populated branchId when manufacturingFacility fields are empty
+        if (appObj.branchId && typeof appObj.branchId === 'object') {
+            const mfg = appObj.manufacturingFacility || {};
+            const hasMfgData = Object.values(mfg).some(v => typeof v === 'string' ? v.trim() !== '' : Boolean(v));
+            if (!hasMfgData) {
+                appObj.manufacturingFacility = {
+                    companyName: appObj.branchId.branchName || '',
+                    address: appObj.branchId.address || '',
+                    localGovtArea: appObj.branchId.lga || '',
+                    city: appObj.branchId.city || '',
+                    state: appObj.branchId.state || '',
+                    country: appObj.branchId.country || '',
+                    plantContact: appObj.branchId.contactName || '',
+                    positionTitle: appObj.branchId.positionTitle || '',
+                    telephoneNo: appObj.branchId.contactNumber || '',
+                    emailAddress: appObj.company?.email || '',
+                    webAddress: appObj.branchId.webAddress || '',
+                    governmentPlantCode: appObj.branchId.governmentPlantCode || ''
+                };
+            }
+        }
+
         if (cert) {
             appObj.certificate = {
                 _id: cert._id,

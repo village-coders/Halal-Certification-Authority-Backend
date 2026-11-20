@@ -232,6 +232,22 @@ const updateUser = async (req, res, next) => {
             });
         }
 
+        // If a sub-user updated company profile details (like address), sync them to the parent company
+        if (updatedUser.isUnderCompany && updatedUser.registrationNo) {
+            const companyFields = {};
+            ['address', 'lga', 'city', 'state', 'country', 'companyName', 'companyContact', 'website'].forEach(field => {
+                if (updatedFields[field] !== undefined) {
+                    companyFields[field] = updatedFields[field];
+                }
+            });
+            if (Object.keys(companyFields).length > 0) {
+                await userModel.updateOne(
+                    { registrationNo: updatedUser.registrationNo, isUnderCompany: false },
+                    { $set: companyFields }
+                );
+            }
+        }
+
         res.status(200).json({
             status: 'success',
             message: "User updated!",
